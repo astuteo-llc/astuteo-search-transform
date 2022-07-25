@@ -22,12 +22,12 @@ class AstuteoSearchTransformService extends Component
     // Constant
     // Fields to extract text from
     const TEXT_FIELDS = ['text', 'plaintext'];
-    public function extractMatrixText($matrix, $handle, $include = [])
+    public function extractMatrixText($matrix, $handle, $include = []): string
     {
         return $this->cleanText($this->matrixCopy($matrix, $handle, $include));
     }
 
-    public function extractEntryText($entry, $include = [])
+    public function extractEntryText($entry, $include = []): string
     {
         $fields = Craft::$app->getEntries()->getEntryById($entry->id)
             ->fieldValues;
@@ -47,7 +47,7 @@ class AstuteoSearchTransformService extends Component
         return $fieldVal;
     }
 
-    public function matrixCopy($entry, $handle, $include)
+    public function matrixCopy($entry, $handle, $include): string
     {
         $text = '';
         $textBlocks = [];
@@ -73,12 +73,12 @@ class AstuteoSearchTransformService extends Component
     }
 
     // Extract Direct Entry Text Values
-    private function parseEntryFields($fields, array $include)
+    private function parseEntryFields($fields, array $include): string
     {
         return $this->cleanText($this->parseFields($fields));
     }
 
-    public function parseFields($fields, $related = true)
+    public function parseFields($fields, $related = true): string
     {
         $text = '';
         foreach ($fields as $field) {
@@ -106,12 +106,12 @@ class AstuteoSearchTransformService extends Component
         return $this->cleanText($text);
     }
 
-    private function cleanText(string $text)
+    private function cleanText(string $text): string
     {
         return strip_tags(trim($text));
     }
 
-    private function parseRelatedEntries($relatedEntries)
+    private function parseRelatedEntries($relatedEntries): string
     {
         $text = '';
         foreach ($relatedEntries->all() as $item) {

@@ -11,7 +11,8 @@
         }
     ],
     "require": {
-        "craftcms/cms": "^4.0.0"
+        "craftcms/cms": "^4.0.0",
+        "php": "^8.0.2"
     },
     "autoload": {
         "psr-4": {
@@ -32,9 +33,6 @@
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
-    "require-dev": {
-        "craftcms/rector": "dev-main"
-    },
     "config": {
         "allow-plugins": {
             "yiisoft/yii2-composer": true,
