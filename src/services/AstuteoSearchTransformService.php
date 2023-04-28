@@ -11,6 +11,7 @@ namespace astuteo\astuteosearchtransform\services;
 
 use Craft;
 use craft\base\Component;
+use craft\helpers\StringHelper;
 
 /**
  * @author    Astuteo
@@ -106,9 +107,15 @@ class AstuteoSearchTransformService extends Component
         return $this->cleanText($text);
     }
 
+
     private function cleanText(string $text): string
     {
-        return strip_tags(trim($text));
+        // Add space before '<' to ensure spaces between tags
+        return StringHelper::collapseWhitespace(
+            strip_tags(
+                str_replace('<', ' <', $text)
+            )
+        );
     }
 
     private function parseRelatedEntries($relatedEntries): string
