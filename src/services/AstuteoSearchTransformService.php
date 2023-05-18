@@ -52,9 +52,6 @@ class AstuteoSearchTransformService extends Component
      */
     public function extractEntryText($entry, $include = []): string
     {
-        if (!is_object($entry) || !method_exists($entry, 'getEntryById')) {
-            throw new \InvalidArgumentException('Invalid entry.');
-        }
         $fields = Craft::$app->getEntries()->getEntryById($entry->id)->fieldValues;
         $text = '';
         foreach ($fields as $field => $value) {
@@ -70,19 +67,12 @@ class AstuteoSearchTransformService extends Component
     // Dummy function to be filled with custom parsing logic
     private function parseField($fieldVal)
     {
-        if (!is_string($fieldVal)) {
-            throw new \InvalidArgumentException('Invalid field value.');
-        }
         return $fieldVal;
     }
 
     // Extract text from a given matrix field
     public function matrixCopy($entry, $handle, $include): string
     {
-        // Validation
-        if (!is_object($entry)) {
-            throw new \InvalidArgumentException('Invalid entry or handle.');
-        }
         $text = '';
         $textBlocks = [];
         if ($entry->$handle) {
