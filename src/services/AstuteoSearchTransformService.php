@@ -110,6 +110,24 @@ class AstuteoSearchTransformService extends Component
         return $parts;
     }
 
+    /**
+     * Fetches the spreadsheet content from the given asset and flattens it into a string.
+     *
+     * @param craft\elements\Asset $asset Craft asset
+     * @return string The flattened spreadsheet content.
+     */
+    public function fetchAndFlattenSpreadsheet(craft\elements\Asset $asset): string
+    {
+        if (!Craft::$app->plugins->isPluginInstalled('spreadsheet-object')) {
+            throw new \Exception('The spreadsheet plugin is not installed.');
+        }
+        $spreadsheetContent = \wabisoft\spreadsheetobject\services\ProcessSpreadsheet::getArrayFromAsset($asset);
+        if (!is_array($spreadsheetContent)) {
+            throw new \Exception('Expected an array from the spreadsheet plugin.');
+        }
+        return $this->flattenArray($spreadsheetContent['rows']);
+    }
+
     private function cleanText(string $text): string
     {
         //@NOTE: I'm not sure if we want to encode this, but testing it
