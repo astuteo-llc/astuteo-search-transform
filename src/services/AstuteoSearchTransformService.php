@@ -128,6 +128,29 @@ class AstuteoSearchTransformService extends Component
         return $this->flattenArray($spreadsheetContent['rows']);
     }
 
+    public function splitLongText(string $text, int $max = 3500): array
+    {
+        $text = $this->cleanText($text);
+        $parts = [];
+        $prefix = '';
+
+        while (strlen($text) > 0) {
+            if (strlen($text) <= $max) {
+                $parts[] = $prefix . $text;
+                break;
+            }
+            $offset = -(strlen($text) - $max);
+            $cut_at_position = strrpos($text, ' ', $offset);
+            if (false === $cut_at_position) {
+                $cut_at_position = $max;
+            }
+            $parts[] = $prefix . substr($text, 0, $cut_at_position);
+            $text = substr($text, $cut_at_position);
+            $prefix = '… ';
+        }
+        return $parts;
+    }
+
     private function cleanText(string $text): string
     {
         //@NOTE: I'm not sure if we want to encode this, but testing it
