@@ -1,8 +1,8 @@
 {
     "name": "astuteo/astuteo-search-transform",
-    "description": "Helper to modify text on projects Astuteo is using Algolia search on.",
+    "description": "Craft 3 helper to modify text on projects Astuteo is using Algolia search on.",
     "type": "craft-plugin",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "license": "MIT",
     "authors": [
         {
