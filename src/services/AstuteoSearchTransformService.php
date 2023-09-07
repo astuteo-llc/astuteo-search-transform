@@ -155,8 +155,15 @@ class AstuteoSearchTransformService extends Component
     private function parseRelatedEntries($relatedEntries) {
         $text = '';
         foreach ($relatedEntries->all() as $item) {
-            $fields = Craft::$app->getEntries()->getEntryById($item->id)->fieldValues;
-            $text = $this->parseFields($fields, false);
+            $siteId = $item->siteId;
+            $entry = Craft::$app->getEntries()->getEntryById($item->id, $siteId);
+
+            if ($entry !== null) {
+                $fields = $entry->fieldValues;
+                $text = $this->parseFields($fields, false);
+            } else {
+                Craft::error("Entry with ID {$item->id} not found for site ID {$siteId}.", __METHOD__);
+            }
         }
         return $this->cleanText($text);
     }
