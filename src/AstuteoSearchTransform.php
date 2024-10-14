@@ -22,7 +22,7 @@ use yii\base\Event;
 class AstuteoSearchTransform extends Plugin
 {
     public static $plugin;
-    public string $schemaVersion = '4.0.0';
+    public string $schemaVersion = '5.1.0';
 
     public function init()
     {
