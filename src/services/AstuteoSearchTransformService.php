@@ -8,7 +8,7 @@ use craft\base\Component;
 use craft\helpers\StringHelper;
 
 /**
- * This service class provides methods for extracting and transforming text
+ * AstuteoSearchTransformService provides methods for extracting and transforming text
  * for search operations, primarily for use with Algolia search.
  *
  * @author    Astuteo
@@ -20,11 +20,26 @@ class AstuteoSearchTransformService extends Component
     // Fields to extract text from
     const TEXT_FIELDS = ['text', 'plaintext'];
 
+    /**
+     * Extracts text from a Matrix field.
+     *
+     * @param object $matrix The Matrix field object
+     * @param string $handle The handle of the Matrix field
+     * @param array $include Array of block types to include
+     * @return string Cleaned and extracted text
+     */
     public function extractMatrixText(object $matrix, string $handle, array $include = []): string
     {
         return $this->cleanText($this->matrixCopy($matrix, $handle, $include));
     }
 
+    /**
+     * Extracts text from an Entry.
+     *
+     * @param object $entry The Entry object
+     * @param array $include Array of field handles to include
+     * @return string Cleaned and extracted text
+     */
     public function extractEntryText(object $entry, array $include = []): string
     {
         $fields = Craft::$app->getEntries()->getEntryById($entry->id)->fieldValues;
@@ -85,6 +100,13 @@ class AstuteoSearchTransformService extends Component
         return $this->cleanText($text);
     }
 
+    /**
+     * Chunks text into smaller parts.
+     *
+     * @param string $content The text to chunk
+     * @param int $maxSize Maximum size of each chunk
+     * @return array Array of text chunks
+     */
     public function chunkText(string $content, int $maxSize = 3500): array
     {
         $parts = [];
@@ -128,6 +150,13 @@ class AstuteoSearchTransformService extends Component
         return $this->flattenArray($spreadsheetContent['rows']);
     }
 
+    /**
+     * Splits long text into smaller parts.
+     *
+     * @param string $text The text to split
+     * @param int $max Maximum length of each part
+     * @return array Array of text parts
+     */
     public function splitLongText(string $text, int $max = 3500): array
     {
         $text = $this->cleanText($text);
