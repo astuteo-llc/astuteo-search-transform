@@ -11,22 +11,23 @@ use craft\helpers\StringHelper;
  * AstuteoSearchTransformService provides methods for extracting and transforming text
  * for search operations, primarily for use with Algolia search.
  *
- * @author    Astuteo
  * @package   AstuteoSearchTransform
- * @since     1.0.0
+ * @since     2.0.0
  */
 class AstuteoSearchTransformService extends Component
 {
-    // Fields to extract text from
+    /**
+     * @var array Fields to extract text from
+     */
     const TEXT_FIELDS = ['text', 'plaintext'];
 
     /**
-     * Extracts text from a Matrix field.
+     * Extracts text from a matrix field.
      *
-     * @param object $matrix The Matrix field object
-     * @param string $handle The handle of the Matrix field
-     * @param array $include Array of block types to include
-     * @return string Cleaned and extracted text
+     * @param object $matrix The matrix field object
+     * @param string $handle The handle of the matrix field
+     * @param array $include Optional array of block types to include
+     * @return string The extracted and cleaned text
      */
     public function extractMatrixText(object $matrix, string $handle, array $include = []): string
     {
@@ -34,18 +35,22 @@ class AstuteoSearchTransformService extends Component
     }
 
     /**
-     * Extracts text from an Entry.
+     * Extracts text from an entry.
      *
-     * @param object $entry The Entry object
-     * @param array $include Array of field handles to include
-     * @return string Cleaned and extracted text
+     * @param object $entry The entry object
+     * @param array $include Optional array of fields to include
+     * @return string The extracted and cleaned text
      */
     public function extractEntryText(object $entry, array $include = []): string
     {
-        $fields = Craft::$app->getEntries()->getEntryById($entry->id)->fieldValues;
+        $fields = $entry->toArray();
         $text = '';
         foreach ($fields as $field => $value) {
-            if (in_array($field, $include)) {
+            if ($this->isMetaField($field)) {
+                continue;
+            }
+
+            if (empty($include) || in_array($field, $include)) {
                 $text .= ' ' . $this->parseField($value);
             }
         }
@@ -53,50 +58,97 @@ class AstuteoSearchTransformService extends Component
         return $this->cleanText($text);
     }
 
+    /**
+     * Checks if a field is a meta field.
+     *
+     * @param string $field The field name
+     * @return bool True if the field is a meta field, false otherwise
+     */
+    private function isMetaField(string $field): bool
+    {
+        $metaFields = [
+            'id', 'uid', 'dateCreated', 'dateUpdated', 'siteId', 'enabled',
+            'status', 'slug', 'uri', 'authorId', 'archived', 'sectionId', 'typeId',
+            'revisionId', 'postDate', 'expiryDate'
+        ];
+
+        return in_array($field, $metaFields);
+    }
+
+    /**
+     * Parses a field value to a string.
+     *
+     * @param mixed $fieldVal The field value
+     * @return string The parsed field value as a string
+     */
     private function parseField(mixed $fieldVal): string
     {
         return (string) $fieldVal;
     }
 
+    /**
+     * Extracts text from a matrix field.
+     *
+     * @param object $entry The entry object
+     * @param string $handle The handle of the matrix field
+     * @param array $include Array of block types to include
+     * @return string The extracted and cleaned text
+     */
     public function matrixCopy(object $entry, string $handle, array $include): string
     {
         $text = '';
         $textBlocks = [];
+
         if ($entry->$handle) {
             foreach ($entry->$handle->all() as $block) {
-                $blockHandles = $block->type->handle;
-                if (in_array($blockHandles, $include)) {
-                    $fields = Craft::$app->getMatrix()->getBlockById($block->id)->fieldValues;
-                    array_push($textBlocks, $this->parseFields($fields));
+                $blockHandle = $block->type->handle;
+
+                if (in_array($blockHandle, $include)) {
+                    $fields = $block->toArray();
+
+                    if (is_array($fields) && !empty($fields)) {
+                        $textBlocks[] = $this->parseFields($fields);
+                    }
                 }
             }
         }
+
         foreach ($textBlocks as $textBlock) {
             if ($textBlock) {
                 $text .= ' ' . $textBlock;
             }
         }
+
         return $this->cleanText($text);
     }
 
+    /**
+     * Parses fields and extracts text.
+     *
+     * @param array $fields Array of fields to parse
+     * @param bool $related Whether to parse related entries
+     * @return string The parsed and cleaned text
+     */
     public function parseFields(array $fields, bool $related = true): string
     {
         $text = '';
-        foreach ($fields as $field) {
+
+        foreach ($fields as $fieldHandle => $fieldValue) {
             $check = match (true) {
-                isset($field?->elementType) => $field->elementType,
-                is_object($field) => get_class($field),
-                is_array($field) => 'array',
+                isset($fieldValue?->elementType) => $fieldValue->elementType,
+                is_object($fieldValue) => get_class($fieldValue),
+                is_array($fieldValue) => 'array',
                 default => 'string',
             };
 
             $text .= match ($check) {
-                'craft\elements\Entry' => $related ? ' ' . $this->parseRelatedEntries($field) : '',
-                'craft\redactor\FieldData', 'string' => ' ' . $field,
-                'array' => ' ' . $this->flattenArray($field),
+                'craft\elements\Entry' => $related ? ' ' . $this->parseRelatedEntries($fieldValue) : '',
+                'craft\redactor\FieldData', 'string' => ' ' . $fieldValue,
+                'array' => ' ' . $this->flattenArray($fieldValue),
                 default => '',
             };
         }
+
         return $this->cleanText($text);
     }
 
@@ -104,8 +156,8 @@ class AstuteoSearchTransformService extends Component
      * Chunks text into smaller parts.
      *
      * @param string $content The text to chunk
-     * @param int $maxSize Maximum size of each chunk
-     * @return array Array of text chunks
+     * @param int $maxSize The maximum size of each chunk
+     * @return array An array of text chunks
      */
     public function chunkText(string $content, int $maxSize = 3500): array
     {
@@ -154,8 +206,8 @@ class AstuteoSearchTransformService extends Component
      * Splits long text into smaller parts.
      *
      * @param string $text The text to split
-     * @param int $max Maximum length of each part
-     * @return array Array of text parts
+     * @param int $max The maximum length of each part
+     * @return array An array of text parts
      */
     public function splitLongText(string $text, int $max = 3500): array
     {
@@ -180,6 +232,12 @@ class AstuteoSearchTransformService extends Component
         return $parts;
     }
 
+    /**
+     * Cleans and formats text.
+     *
+     * @param string $text The text to clean
+     * @return string The cleaned text
+     */
     private function cleanText(string $text): string
     {
         //@NOTE: I'm not sure if we want to encode this, but testing it
@@ -194,6 +252,12 @@ class AstuteoSearchTransformService extends Component
         return $text;
     }
 
+    /**
+     * Flattens an array into a string.
+     *
+     * @param array $array The array to flatten
+     * @return string The flattened array as a string
+     */
     private function flattenArray(array $array): string {
         $text = '';
         foreach ($array as $item) {
@@ -202,12 +266,19 @@ class AstuteoSearchTransformService extends Component
         return $this->cleanText($text);
     }
 
+    /**
+     * Parses related entries and extracts text.
+     *
+     * @param object $relatedEntries The related entries object
+     * @return string The parsed and cleaned text from related entries
+     */
     private function parseRelatedEntries(object $relatedEntries): string
     {
         $text = '';
         foreach ($relatedEntries->all() as $item) {
-            $fields = Craft::$app->getEntries()->getEntryById($item->id)->fieldValues;
-            $text = $this->parseFields($fields, false);
+            // Correctly access the related entry's field values
+            $fields = $item->fieldValues;
+            $text .= $this->parseFields($fields, false);
         }
         return $this->cleanText($text);
     }
