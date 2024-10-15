@@ -17,11 +17,6 @@ use craft\helpers\StringHelper;
 class AstuteoSearchTransformService extends Component
 {
     /**
-     * @var array Fields to extract text from
-     */
-    const TEXT_FIELDS = ['text', 'plaintext'];
-
-    /**
      * Extracts text from a matrix field.
      *
      * @param object $matrix The matrix field object
@@ -107,7 +102,8 @@ class AstuteoSearchTransformService extends Component
                     $fields = $block->toArray();
 
                     if (is_array($fields) && !empty($fields)) {
-                        $textBlocks[] = $this->parseFields($fields);
+
+                        $textBlocks[] = $this->parseFields($fields, $include);
                     }
                 }
             }
@@ -124,32 +120,76 @@ class AstuteoSearchTransformService extends Component
 
     /**
      * Parses fields and extracts text.
+     * @DEV: I'd like to refactor this to be more flexible and allow for more complex field parsing
+     * in not requre passing what are essentially entry types. As-is, this will break Craft 4
+     * sites when we upgrade
      *
      * @param array $fields Array of fields to parse
+     * @param array $fieldsToExtract Array of fields to extract
      * @param bool $related Whether to parse related entries
      * @return string The parsed and cleaned text
      */
-    public function parseFields(array $fields, bool $related = true): string
+    public function parseFields(array $fields, array $fieldsToExtract = ['text','heading'], bool $related = true): string
     {
         $text = '';
-
         foreach ($fields as $fieldHandle => $fieldValue) {
-            $check = match (true) {
-                isset($fieldValue?->elementType) => $fieldValue->elementType,
-                is_object($fieldValue) => get_class($fieldValue),
-                is_array($fieldValue) => 'array',
-                default => 'string',
-            };
-
-            $text .= match ($check) {
-                'craft\elements\Entry' => $related ? ' ' . $this->parseRelatedEntries($fieldValue) : '',
-                'craft\redactor\FieldData', 'string' => ' ' . $fieldValue,
-                'array' => ' ' . $this->flattenArray($fieldValue),
-                default => '',
-            };
+            if (in_array($fieldHandle, $fieldsToExtract)) {
+                $text .= ' ' . $this->extractStringValue($fieldValue, $related);
+            }
         }
 
         return $this->cleanText($text);
+    }
+
+
+    /**
+     * @param array $array
+     * @return string
+     */
+    private function flattenArray(array $array): string
+    {
+        $text = '';
+        foreach ($array as $item) {
+            if (is_array($item)) {
+                $text .= ' ' . $this->flattenArray($item);
+            } elseif (is_string($item)) {
+                $text .= ' ' . $item;
+            }
+        }
+        return $text;
+    }
+
+
+    /**
+     * @param $fieldValue
+     * @param bool $related
+     * @return string
+     */
+    private function extractStringValue($fieldValue, bool $related): string
+    {
+        if (is_string($fieldValue)) {
+            return $fieldValue;
+        }
+
+        if (is_object($fieldValue)) {
+            if (method_exists($fieldValue, '__toString')) {
+                return (string)$fieldValue;
+            }
+
+            if ($fieldValue instanceof \craft\elements\Entry && $related) {
+                return $this->parseRelatedEntries($fieldValue);
+            }
+
+            if ($fieldValue instanceof \craft\redactor\FieldData) {
+                return (string)$fieldValue;
+            }
+        }
+
+        if (is_array($fieldValue)) {
+            return $this->flattenArray($fieldValue);
+        }
+
+        return '';
     }
 
     /**
@@ -258,13 +298,7 @@ class AstuteoSearchTransformService extends Component
      * @param array $array The array to flatten
      * @return string The flattened array as a string
      */
-    private function flattenArray(array $array): string {
-        $text = '';
-        foreach ($array as $item) {
-            $text .= is_array($item) ? ' ' . $this->flattenArray($item) : ' ' . $item;
-        }
-        return $this->cleanText($text);
-    }
+
 
     /**
      * Parses related entries and extracts text.
