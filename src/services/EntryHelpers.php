@@ -27,7 +27,7 @@ class EntryHelpers extends Component
      *
      * @param Entry|null $entry The entry to get related elements from
      * @param string $handle The field handle
-     * @return array An array of related element titles
+     * @return array<string> An array of related element titles
      */
     public function getRelatedTitles(?Entry $entry, string $handle): array
     {
@@ -42,9 +42,9 @@ class EntryHelpers extends Component
 
         return match(true) {
             $field instanceof CategoryQuery || $field instanceof EntryQuery
-                => array_map(fn(ElementInterface $e) => $e->title, $field->all() ?? []),
+            => array_map(fn(ElementInterface $e): string => (string)$e->title, $field->all() ?: []),
             $field instanceof Category || $field instanceof Entry
-                => [$field->title],
+            => [(string)$field->title],
             default => []
         };
     }
@@ -65,8 +65,8 @@ class EntryHelpers extends Component
         }
 
         return match(true) {
-            $field instanceof AssetQuery => $field->kind('image')->one()?->getUrl() ?? '',
-            $field instanceof Asset && $field->kind === 'image' => $field->getUrl() ?? '',
+            $field instanceof AssetQuery => $field->kind('image')->one()?->getUrl() ?: '',
+            $field instanceof Asset && $field->kind === 'image' => $field->getUrl() ?: '',
             default => ''
         };
     }
@@ -76,7 +76,7 @@ class EntryHelpers extends Component
      *
      * @param Entry $entry The entry to get images from
      * @param string $fieldHandle The field handle
-     * @return array An array of image URLs
+     * @return array<string> An array of image URLs
      */
     public function getImages(Entry $entry, string $fieldHandle): array
     {
@@ -86,57 +86,41 @@ class EntryHelpers extends Component
             return [];
         }
 
-        return array_map(
-            Asset::getUrl(...),
-            match(true) {
-                $field instanceof AssetQuery => $field->kind('image')->all(),
-                $field instanceof Asset && $field->kind === 'image' => [$field],
-                default => []
-            }
-        );
+        $assets = match(true) {
+            $field instanceof AssetQuery => $field->kind('image')->all(),
+            $field instanceof Asset && $field->kind === 'image' => [$field],
+            default => []
+        };
+
+        return array_filter(array_map(fn(Asset $asset): ?string => $asset->getUrl(), $assets));
     }
 
-    // Static methods for backward compatibility - keeping original method names
+    // Static methods for backward compatibility
 
     /**
-     * Get an array of titles from a given relationship field (categories or entries).
-     *
-     * @param Entry|null $entry The entry to get related elements from
-     * @param string $handle The field handle
-     * @return array An array of related element titles
      * @deprecated in 5.3.1 Use instance method getRelatedTitles() instead
      */
     public static function getRelatedTitlesFromField(?Entry $entry, string $handle): array
     {
         AstuteoSearchTransform::info('Using static EntryHelpers::getRelatedTitlesFromField() has been deprecated. Use AstuteoSearchTransform::getInstance()->entryHelpers->getRelatedTitles() instead.');
-        return (new self())->getRelatedTitles($entry, $handle);
+        return AstuteoSearchTransform::getInstance()->entryHelpers->getRelatedTitles($entry, $handle);
     }
 
     /**
-     * Get the URL of the first image from a given field.
-     *
-     * @param Entry $entry The entry to get the image from
-     * @param string $fieldHandle The field handle
-     * @return string The URL of the first image or an empty string
      * @deprecated in 5.3.1 Use instance method getImage() instead
      */
     public static function getFirstImage(Entry $entry, string $fieldHandle): string
     {
         AstuteoSearchTransform::info('Using static EntryHelpers::getFirstImage() has been deprecated. Use AstuteoSearchTransform::getInstance()->entryHelpers->getImage() instead.');
-        return (new self())->getImage($entry, $fieldHandle);
+        return AstuteoSearchTransform::getInstance()->entryHelpers->getImage($entry, $fieldHandle);
     }
 
     /**
-     * Get an array of image URLs from a given field.
-     *
-     * @param Entry $entry The entry to get images from
-     * @param string $fieldHandle The field handle
-     * @return array An array of image URLs
      * @deprecated in 5.3.1 Use instance method getImages() instead
      */
     public static function getImageUrls(Entry $entry, string $fieldHandle): array
     {
         AstuteoSearchTransform::info('Using static EntryHelpers::getImageUrls() has been deprecated. Use AstuteoSearchTransform::getInstance()->entryHelpers->getImages() instead.');
-        return (new self())->getImages($entry, $fieldHandle);
+        return AstuteoSearchTransform::getInstance()->entryHelpers->getImages($entry, $fieldHandle);
     }
 }

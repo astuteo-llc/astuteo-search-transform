@@ -4,7 +4,9 @@ namespace astuteo\astuteosearchtransform\services;
 
 use Craft;
 use craft\base\Component;
+use craft\elements\Asset;
 use craft\helpers\StringHelper;
+use Exception;
 
 /**
  * Text Extraction provides methods for extracting and transforming text
@@ -15,12 +17,18 @@ use craft\helpers\StringHelper;
  */
 class TextExtraction extends Component
 {
+    /**
+     * Fields that should be excluded from extraction as they're metadata
+     */
     private const META_FIELDS = [
         'id', 'uid', 'dateCreated', 'dateUpdated', 'siteId', 'enabled',
         'status', 'slug', 'uri', 'authorId', 'archived', 'sectionId', 'typeId',
         'revisionId', 'postDate', 'expiryDate'
     ];
 
+    /**
+     * Default field types to extract text from
+     */
     public const DEFAULT_EXTRACT_FIELDS = ['text', 'heading'];
 
     /**
@@ -28,31 +36,32 @@ class TextExtraction extends Component
      *
      * @param object $matrix The matrix field object
      * @param string $handle The handle of the matrix field
-     * @param array $include Optional array of block types to include
+     * @param array<string> $include Optional array of block types to include
      * @return string The extracted and cleaned text
      */
     public function extractMatrixText(object $matrix, string $handle, array $include = []): string
     {
-        return $this->cleanText($this->matrixCopy($matrix, $handle, $include));
+        return $this->matrixCopy($matrix, $handle, $include);
     }
 
     /**
      * Extracts text from an entry.
      *
      * @param object $entry The entry object
-     * @param array $include Optional array of fields to include
+     * @param array<string> $include Optional array of fields to include
      * @return string The extracted and cleaned text
      */
     public function extractEntryText(object $entry, array $include = []): string
     {
         $fields = $entry->toArray();
         $text = '';
+
         foreach ($fields as $field => $value) {
             if ($this->isMetaField($field)) {
                 continue;
             }
 
-            if (empty($include) || in_array($field, $include)) {
+            if (empty($include) || in_array($field, $include, true)) {
                 $text .= ' ' . $this->parseField($value);
             }
         }
@@ -87,54 +96,50 @@ class TextExtraction extends Component
      *
      * @param object $entry The entry object
      * @param string $handle The handle of the matrix field
-     * @param array $include Array of block types to include
+     * @param array<string> $include Array of block types to include
      * @return string The extracted and cleaned text
      */
     public function matrixCopy(object $entry, string $handle, array $include): string
     {
-        $text = '';
+        if (!property_exists($entry, $handle) || !$entry->$handle) {
+            return '';
+        }
+
         $textBlocks = [];
 
-        if ($entry->$handle) {
-            foreach ($entry->$handle->all() as $block) {
-                $blockHandle = $block->type->handle;
+        foreach ($entry->$handle->all() as $block) {
+            if (!property_exists($block, 'type') || !property_exists($block->type, 'handle')) {
+                continue;
+            }
 
-                if (in_array($blockHandle, $include)) {
-                    $fields = $block->toArray();
+            $blockHandle = $block->type->handle;
 
-                    if (is_array($fields) && !empty($fields)) {
+            if (in_array($blockHandle, $include, true)) {
+                $fields = $block->toArray();
 
-                        $textBlocks[] = $this->parseFields($fields, $include);
-                    }
+                if (is_array($fields) && !empty($fields)) {
+                    $textBlocks[] = $this->parseFields($fields, $include);
                 }
             }
         }
 
-        foreach ($textBlocks as $textBlock) {
-            if ($textBlock) {
-                $text .= ' ' . $textBlock;
-            }
-        }
-
-        return $this->cleanText($text);
+        return $this->cleanText(implode(' ', array_filter($textBlocks)));
     }
 
     /**
      * Parses fields and extracts text.
-     * @DEV: I'd like to refactor this to be more flexible and allow for more complex field parsing
-     * in not requre passing what are essentially entry types. As-is, this will break Craft 4
-     * sites when we upgrade
      *
-     * @param array $fields Array of fields to parse
-     * @param array $fieldsToExtract Array of fields to extract
+     * @param array<string,mixed> $fields Array of fields to parse
+     * @param array<string> $fieldsToExtract Array of fields to extract
      * @param bool $related Whether to parse related entries
      * @return string The parsed and cleaned text
      */
     public function parseFields(array $fields, array $fieldsToExtract = self::DEFAULT_EXTRACT_FIELDS, bool $related = true): string
     {
         $text = '';
+
         foreach ($fields as $fieldHandle => $fieldValue) {
-            if (in_array($fieldHandle, $fieldsToExtract)) {
+            if (in_array($fieldHandle, $fieldsToExtract, true)) {
                 $text .= ' ' . $this->extractStringValue($fieldValue, $related);
             }
         }
@@ -142,29 +147,35 @@ class TextExtraction extends Component
         return $this->cleanText($text);
     }
 
-
     /**
-     * @param array $array
-     * @return string
+     * Flattens an array into a string.
+     *
+     * @param array<mixed> $array The array to flatten
+     * @return string The flattened array as a string
      */
     private function flattenArray(array $array): string
     {
-        $text = '';
+        $result = [];
+
         foreach ($array as $item) {
             if (is_array($item)) {
-                $text .= ' ' . $this->flattenArray($item);
+                $result[] = $this->flattenArray($item);
             } elseif (is_string($item)) {
-                $text .= ' ' . $item;
+                $result[] = $item;
+            } elseif ($item !== null) {
+                $result[] = (string)$item;
             }
         }
-        return $text;
+
+        return implode(' ', $result);
     }
 
-
     /**
-     * @param mixed $fieldValue
-     * @param bool $related
-     * @return string
+     * Extracts string value from field value.
+     *
+     * @param mixed $fieldValue The field value
+     * @param bool $related Whether to parse related entries
+     * @return string The extracted string
      */
     private function extractStringValue(mixed $fieldValue, bool $related): string
     {
@@ -186,48 +197,32 @@ class TextExtraction extends Component
      *
      * @param string $content The text to chunk
      * @param int $maxSize The maximum size of each chunk
-     * @return array An array of text chunks
+     * @return array<string> An array of text chunks
      */
     public function chunkText(string $content, int $maxSize = 3500): array
     {
-        $parts = [];
-        $prefix = '';
-        $content = $this->cleanText($content);
-
-        do {
-            if (mb_strlen($content) <= $maxSize) {
-                $parts[] = $prefix . $content;
-                $content = '';
-            } else {
-                $offset = -(mb_strlen($content) - $maxSize);
-                $cut_at_position = mb_strrpos($content, ' ', $offset);
-                if (false === $cut_at_position) {
-                    $cut_at_position = $maxSize;
-                }
-                $parts[] = $prefix . mb_substr($content, 0, $cut_at_position);
-                $content = mb_substr($content, $cut_at_position);
-                $prefix = '… ';
-            }
-        } while ($content !== '');
-
-        return $parts;
+        return $this->splitLongText($content, $maxSize);
     }
 
     /**
      * Fetches the spreadsheet content from the given asset and flattens it into a string.
      *
-     * @param craft\elements\Asset $asset Craft asset
+     * @param Asset $asset Craft asset
      * @return string The flattened spreadsheet content.
+     * @throws Exception when the plugin is not installed or returns unexpected data
      */
-    public function fetchAndFlattenSpreadsheet(craft\elements\Asset $asset): string
+    public function fetchAndFlattenSpreadsheet(Asset $asset): string
     {
         if (!Craft::$app->plugins->isPluginInstalled('spreadsheet-object')) {
-            throw new \Exception('The spreadsheet plugin is not installed.');
+            throw new Exception('The spreadsheet plugin is not installed.');
         }
+
         $spreadsheetContent = \wabisoft\spreadsheetobject\services\ProcessSpreadsheet::getArrayFromAsset($asset);
-        if (!is_array($spreadsheetContent)) {
-            throw new \Exception('Expected an array from the spreadsheet plugin.');
+
+        if (!is_array($spreadsheetContent) || !isset($spreadsheetContent['rows']) || !is_array($spreadsheetContent['rows'])) {
+            throw new Exception('Expected an array with rows from the spreadsheet plugin.');
         }
+
         return $this->flattenArray($spreadsheetContent['rows']);
     }
 
@@ -236,7 +231,7 @@ class TextExtraction extends Component
      *
      * @param string $text The text to split
      * @param int $max The maximum length of each part
-     * @return array An array of text parts
+     * @return array<string> An array of text parts
      */
     public function splitLongText(string $text, int $max = 3500): array
     {
@@ -249,15 +244,19 @@ class TextExtraction extends Component
                 $parts[] = $prefix . $text;
                 break;
             }
+
             $offset = -(mb_strlen($text) - $max);
-            $cut_at_position = mb_strrpos($text, ' ', $offset);
-            if (false === $cut_at_position) {
-                $cut_at_position = $max;
+            $cutPosition = mb_strrpos($text, ' ', $offset);
+
+            if (false === $cutPosition) {
+                $cutPosition = $max;
             }
-            $parts[] = $prefix . mb_substr($text, 0, $cut_at_position);
-            $text = mb_substr($text, $cut_at_position);
+
+            $parts[] = $prefix . mb_substr($text, 0, $cutPosition);
+            $text = mb_substr($text, $cutPosition);
             $prefix = '… ';
         }
+
         return $parts;
     }
 
@@ -269,25 +268,17 @@ class TextExtraction extends Component
      */
     private function cleanText(string $text): string
     {
-        //@NOTE: I'm not sure if we want to encode this, but testing it
-        $text = html_entity_decode($text); // Decode HTML entities
-        $text = str_replace('&nbsp;', ' ', $text); // Convert non-breaking spaces to regular spaces
-        $text = str_replace('<', ' <', $text); // Add space before '<' to ensure spaces between tags
+        // Decode HTML entities and handle special cases
+        $text = html_entity_decode($text);
+        $text = str_replace('&nbsp;', ' ', $text);
+        $text = str_replace('<', ' <', $text);
 
-        $text = strip_tags($text); // Remove HTML tags
+        // Remove HTML tags
+        $text = strip_tags($text);
 
-        $text = StringHelper::collapseWhitespace($text); // Collapse whitespace
-
-        return $text;
+        // Collapse whitespace
+        return StringHelper::collapseWhitespace($text);
     }
-
-    /**
-     * Flattens an array into a string.
-     *
-     * @param array $array The array to flatten
-     * @return string The flattened array as a string
-     */
-
 
     /**
      * Parses related entries and extracts text.
@@ -297,12 +288,16 @@ class TextExtraction extends Component
      */
     private function parseRelatedEntries(object $relatedEntries): string
     {
-        $text = '';
+        $textParts = [];
+
         foreach ($relatedEntries->all() as $item) {
-            // Correctly access the related entry's field values
-            $fields = $item->fieldValues;
-            $text .= $this->parseFields($fields, false);
+            if (!property_exists($item, 'fieldValues')) {
+                continue;
+            }
+
+            $textParts[] = $this->parseFields($item->fieldValues, self::DEFAULT_EXTRACT_FIELDS, false);
         }
-        return $this->cleanText($text);
+
+        return $this->cleanText(implode(' ', $textParts));
     }
 }
