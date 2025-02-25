@@ -16,10 +16,9 @@ use astuteo\astuteosearchtransform\services\AstuteoSearchTransformService;
 
 use Craft;
 use craft\base\Plugin;
-use craft\services\Plugins;
-use craft\events\PluginEvent;
-
-use yii\base\Event;
+use craft\log\MonologTarget;
+use Monolog\Formatter\LineFormatter;
+use yii\log\Logger;
 
 /**
  * Class AstuteoSearchTransform
@@ -48,6 +47,9 @@ class AstuteoSearchTransform extends Plugin
         parent::init();
         self::$plugin = $this;
 
+        // Register logger
+        $this->registerLogTarget();
+
         // Register services
         $this->setComponents([
             'textExtraction' => TextExtraction::class,
@@ -58,7 +60,7 @@ class AstuteoSearchTransform extends Plugin
         // be using the old service name directly
         if (Craft::$app->getRequest()->getIsCpRequest()) {
             Craft::$app->getDeprecator()->log(
-                'AstuteoSearchTransformService',
+                'Astuteo Search Transform',
                 'Using AstuteoSearchTransformService directly has been deprecated. Use AstuteoSearchTransform::getInstance()->textExtraction instead.'
             );
         }
@@ -71,5 +73,52 @@ class AstuteoSearchTransform extends Plugin
             ),
             __METHOD__
         );
+    }
+
+    /**
+     * Registers the log target for astuteo-search logging
+     */
+    private function registerLogTarget(): void
+    {
+        Craft::getLogger()->dispatcher->targets[] = new MonologTarget([
+            'name' => 'astuteo-search',
+            'categories' => ['astuteo-search'],
+            'level' => Logger::INFO,
+            'logContext' => false,
+            'allowLineBreaks' => false,
+            'formatter' => new LineFormatter(
+                format: "%datetime% %message%\n",
+                dateFormat: 'Y-m-d H:i:s',
+            ),
+        ]);
+    }
+
+    /**
+     * Log an info message
+     * @param mixed $message
+     */
+    public static function info($message): void
+    {
+        if (Craft::$app->config->general->devMode) {
+            Craft::info($message, 'astuteo-search');
+        }
+    }
+
+    /**
+     * Log an error message
+     * @param mixed $message
+     */
+    public static function error($message): void
+    {
+        Craft::error($message, 'astuteo-search');
+    }
+
+    /**
+     * Log a warning message
+     * @param mixed $message
+     */
+    public static function warning($message): void
+    {
+        Craft::warning($message, 'astuteo-search');
     }
 }
