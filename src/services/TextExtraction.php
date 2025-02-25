@@ -12,7 +12,7 @@ use craft\helpers\StringHelper;
  * for search operations, primarily for use with Algolia search.
  *
  * @package   AstuteoSearchTransform
- * @since     5.3.0
+ * @since     5.4.0
  */
 class TextExtraction extends Component
 {
