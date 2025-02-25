@@ -15,6 +15,14 @@ use craft\helpers\StringHelper;
  */
 class TextExtraction extends Component
 {
+    private const META_FIELDS = [
+        'id', 'uid', 'dateCreated', 'dateUpdated', 'siteId', 'enabled',
+        'status', 'slug', 'uri', 'authorId', 'archived', 'sectionId', 'typeId',
+        'revisionId', 'postDate', 'expiryDate'
+    ];
+
+    public const DEFAULT_EXTRACT_FIELDS = ['text', 'heading'];
+
     /**
      * Extracts text from a matrix field.
      *
@@ -60,13 +68,7 @@ class TextExtraction extends Component
      */
     private function isMetaField(string $field): bool
     {
-        $metaFields = [
-            'id', 'uid', 'dateCreated', 'dateUpdated', 'siteId', 'enabled',
-            'status', 'slug', 'uri', 'authorId', 'archived', 'sectionId', 'typeId',
-            'revisionId', 'postDate', 'expiryDate'
-        ];
-
-        return in_array($field, $metaFields);
+        return in_array($field, self::META_FIELDS, true);
     }
 
     /**
@@ -128,7 +130,7 @@ class TextExtraction extends Component
      * @param bool $related Whether to parse related entries
      * @return string The parsed and cleaned text
      */
-    public function parseFields(array $fields, array $fieldsToExtract = ['text','heading'], bool $related = true): string
+    public function parseFields(array $fields, array $fieldsToExtract = self::DEFAULT_EXTRACT_FIELDS, bool $related = true): string
     {
         $text = '';
         foreach ($fields as $fieldHandle => $fieldValue) {
@@ -160,35 +162,23 @@ class TextExtraction extends Component
 
 
     /**
-     * @param $fieldValue
+     * @param mixed $fieldValue
      * @param bool $related
      * @return string
      */
-    private function extractStringValue($fieldValue, bool $related): string
+    private function extractStringValue(mixed $fieldValue, bool $related): string
     {
-        if (is_string($fieldValue)) {
-            return $fieldValue;
-        }
-
-        if (is_object($fieldValue)) {
-            if (method_exists($fieldValue, '__toString')) {
-                return (string)$fieldValue;
-            }
-
-            if ($fieldValue instanceof \craft\elements\Entry && $related) {
-                return $this->parseRelatedEntries($fieldValue);
-            }
-
-            if ($fieldValue instanceof \craft\redactor\FieldData) {
-                return (string)$fieldValue;
-            }
-        }
-
-        if (is_array($fieldValue)) {
-            return $this->flattenArray($fieldValue);
-        }
-
-        return '';
+        return match(true) {
+            is_string($fieldValue) => $fieldValue,
+            is_object($fieldValue) => match(true) {
+                method_exists($fieldValue, '__toString') => (string)$fieldValue,
+                $fieldValue instanceof \craft\elements\Entry && $related => $this->parseRelatedEntries($fieldValue),
+                $fieldValue instanceof \craft\redactor\FieldData => (string)$fieldValue,
+                default => ''
+            },
+            is_array($fieldValue) => $this->flattenArray($fieldValue),
+            default => ''
+        };
     }
 
     /**
@@ -254,18 +244,18 @@ class TextExtraction extends Component
         $parts = [];
         $prefix = '';
 
-        while (strlen($text) > 0) {
-            if (strlen($text) <= $max) {
+        while (mb_strlen($text) > 0) {
+            if (mb_strlen($text) <= $max) {
                 $parts[] = $prefix . $text;
                 break;
             }
-            $offset = -(strlen($text) - $max);
-            $cut_at_position = strrpos($text, ' ', $offset);
+            $offset = -(mb_strlen($text) - $max);
+            $cut_at_position = mb_strrpos($text, ' ', $offset);
             if (false === $cut_at_position) {
                 $cut_at_position = $max;
             }
-            $parts[] = $prefix . substr($text, 0, $cut_at_position);
-            $text = substr($text, $cut_at_position);
+            $parts[] = $prefix . mb_substr($text, 0, $cut_at_position);
+            $text = mb_substr($text, $cut_at_position);
             $prefix = '… ';
         }
         return $parts;
