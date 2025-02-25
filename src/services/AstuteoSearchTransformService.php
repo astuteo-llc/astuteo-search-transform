@@ -5,15 +5,21 @@ namespace astuteo\astuteosearchtransform\services;
 
 use Craft;
 use yii\base\BaseObject;
+use astuteo\astuteosearchtransform\AstuteoSearchTransform;
 
 /**
- * @deprecated in 3.0.0. Use TextExtractionService instead.
+ * @deprecated in 3.0.0. Use TextExtraction instead.
  */
 class AstuteoSearchTransformService extends TextExtraction
 {
+    /**
+     * Constructor.
+     * 
+     * @param array $config
+     */
     public function __construct($config = [])
     {
-        Craft::$app->getDeprecator()->log('AstuteoSearchTransformService', 'AstuteoSearchTransformService has been deprecated. Use TextExtraction instead.');
+        AstuteoSearchTransform::info('AstuteoSearchTransformService is being used directly. Use AstuteoSearchTransform::getInstance()->textExtraction instead.');
         parent::__construct($config);
     }
 }

@@ -11,6 +11,7 @@ use craft\elements\db\CategoryQuery;
 use craft\elements\db\EntryQuery;
 use craft\elements\Entry;
 use craft\base\ElementInterface;
+use astuteo\astuteosearchtransform\AstuteoSearchTransform;
 
 /**
  * EntryHelpers provides methods for extracting and transforming text
@@ -114,7 +115,7 @@ class EntryHelpers extends Component
      */
     public static function getRelatedTitlesFromField(?Entry $entry, string $handle): array
     {
-        Craft::$app->getDeprecator()->log('EntryHelpers::getRelatedTitlesFromField', 'Using static EntryHelpers methods has been deprecated. Use AstuteoSearchTransform::getInstance()->entryHelpers->getRelatedTitles() instead.');
+        AstuteoSearchTransform::info('Using static EntryHelpers::getRelatedTitlesFromField() has been deprecated. Use AstuteoSearchTransform::getInstance()->entryHelpers->getRelatedTitles() instead.');
         return (new self())->getRelatedTitles($entry, $handle);
     }
 
@@ -128,7 +129,7 @@ class EntryHelpers extends Component
      */
     public static function getFirstImage(Entry $entry, string $fieldHandle): string
     {
-        Craft::$app->getDeprecator()->log('EntryHelpers::getFirstImage', 'Using static EntryHelpers methods has been deprecated. Use AstuteoSearchTransform::getInstance()->entryHelpers->getImage() instead.');
+        AstuteoSearchTransform::info('Using static EntryHelpers::getFirstImage() has been deprecated. Use AstuteoSearchTransform::getInstance()->entryHelpers->getImage() instead.');
         return (new self())->getImage($entry, $fieldHandle);
     }
 
@@ -142,7 +143,7 @@ class EntryHelpers extends Component
      */
     public static function getImageUrls(Entry $entry, string $fieldHandle): array
     {
-        Craft::$app->getDeprecator()->log('EntryHelpers::getImageUrls', 'Using static EntryHelpers methods has been deprecated. Use AstuteoSearchTransform::getInstance()->entryHelpers->getImages() instead.');
+        AstuteoSearchTransform::info('Using static EntryHelpers::getImageUrls() has been deprecated. Use AstuteoSearchTransform::getInstance()->entryHelpers->getImages() instead.');
         return (new self())->getImages($entry, $fieldHandle);
     }
 }

@@ -18,7 +18,7 @@ use Craft;
 use craft\base\Plugin;
 use craft\log\MonologTarget;
 use Monolog\Formatter\LineFormatter;
-use yii\log\Logger;
+use Monolog\Logger;
 
 /**
  * Class AstuteoSearchTransform
@@ -38,6 +38,21 @@ class AstuteoSearchTransform extends Plugin
      * @var string
      */
     public string $schemaVersion = '5.4.0';
+    
+    /**
+     * Log category used for all plugin logging
+     */
+    public const LOG_CATEGORY = 'astuteo-search';
+
+    /**
+     * @var TextExtraction|null
+     */
+    public ?TextExtraction $textExtraction = null;
+    
+    /**
+     * @var EntryHelpers|null
+     */
+    public ?EntryHelpers $entryHelpers = null;
 
     /**
      * Initializes the plugin.
@@ -49,6 +64,9 @@ class AstuteoSearchTransform extends Plugin
 
         // Register logger
         $this->registerLogTarget();
+        
+        // Log initialization
+        self::info('Astuteo Search Transform plugin initializing');
 
         // Register services
         $this->setComponents([
@@ -56,14 +74,14 @@ class AstuteoSearchTransform extends Plugin
             'entryHelpers' => EntryHelpers::class,
         ]);
 
-        // Maintain backwards compatibility for any code that might still
-        // be using the old service name directly
-        if (Craft::$app->getRequest()->getIsCpRequest()) {
-            Craft::$app->getDeprecator()->log(
-                'Astuteo Search Transform',
-                'Using AstuteoSearchTransformService directly has been deprecated. Use AstuteoSearchTransform::getInstance()->textExtraction instead.'
-            );
-        }
+        // Log successful initialization
+        self::info(
+            Craft::t(
+                'astuteo-search-transform',
+                '{name} plugin initialized',
+                ['name' => $this->name]
+            )
+        );
 
         Craft::info(
             Craft::t(
@@ -81,8 +99,8 @@ class AstuteoSearchTransform extends Plugin
     private function registerLogTarget(): void
     {
         Craft::getLogger()->dispatcher->targets[] = new MonologTarget([
-            'name' => 'astuteo-search',
-            'categories' => ['astuteo-search'],
+            'name' => self::LOG_CATEGORY,
+            'categories' => [self::LOG_CATEGORY],
             'level' => Logger::INFO,
             'logContext' => false,
             'allowLineBreaks' => false,
@@ -100,7 +118,7 @@ class AstuteoSearchTransform extends Plugin
     public static function info($message): void
     {
         if (Craft::$app->config->general->devMode) {
-            Craft::info($message, 'astuteo-search');
+            Craft::info($message, self::LOG_CATEGORY);
         }
     }
 
@@ -110,7 +128,7 @@ class AstuteoSearchTransform extends Plugin
      */
     public static function error($message): void
     {
-        Craft::error($message, 'astuteo-search');
+        Craft::error($message, self::LOG_CATEGORY);
     }
 
     /**
@@ -119,6 +137,6 @@ class AstuteoSearchTransform extends Plugin
      */
     public static function warning($message): void
     {
-        Craft::warning($message, 'astuteo-search');
+        Craft::warning($message, self::LOG_CATEGORY);
     }
 }
