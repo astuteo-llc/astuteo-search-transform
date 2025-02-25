@@ -40,15 +40,13 @@ class EntryHelpers extends Component
             return [];
         }
 
-        if ($field instanceof CategoryQuery || $field instanceof EntryQuery) {
-            return array_map(function (ElementInterface $element) {
-                return $element->title;
-            }, $field->all() ?? []);
-        } elseif ($field instanceof Category || $field instanceof Entry) {
-            return [$field->title];
-        }
-
-        return [];
+        return match(true) {
+            $field instanceof CategoryQuery || $field instanceof EntryQuery
+                => array_map(fn(ElementInterface $e) => $e->title, $field->all() ?? []),
+            $field instanceof Category || $field instanceof Entry
+                => [$field->title],
+            default => []
+        };
     }
 
     /**
@@ -66,15 +64,11 @@ class EntryHelpers extends Component
             return '';
         }
 
-        if ($field instanceof AssetQuery) {
-            $firstImage = $field->kind('image')->one();
-        } elseif ($field instanceof Asset && $field->kind === 'image') {
-            $firstImage = $field;
-        } else {
-            $firstImage = null;
-        }
-
-        return $firstImage ? $firstImage->getUrl() : '';
+        return match(true) {
+            $field instanceof AssetQuery => $field->kind('image')->one()?->getUrl() ?? '',
+            $field instanceof Asset && $field->kind === 'image' => $field->getUrl() ?? '',
+            default => ''
+        };
     }
 
     /**
@@ -92,15 +86,14 @@ class EntryHelpers extends Component
             return [];
         }
 
-        if ($field instanceof AssetQuery) {
-            $assets = $field->kind('image')->all();
-        } elseif ($field instanceof Asset && $field->kind === 'image') {
-            $assets = [$field];
-        } else {
-            $assets = [];
-        }
-
-        return array_map(fn(Asset $asset) => $asset->getUrl(), $assets);
+        return array_map(
+            Asset::getUrl(...),
+            match(true) {
+                $field instanceof AssetQuery => $field->kind('image')->all(),
+                $field instanceof Asset && $field->kind === 'image' => [$field],
+                default => []
+            }
+        );
     }
 
     // Static methods for backward compatibility - keeping original method names
