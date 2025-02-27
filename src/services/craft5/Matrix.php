@@ -215,7 +215,9 @@ class Matrix
      */
     private function processEntryField(Entry $block, Entries $field, array $fieldHandles = [], bool $isInclusiveMode = false): array
     {
-        $relatedEntries = $block->getFieldValue($field->handle)->all();
+        $relatedEntries = $block
+            ->getFieldValue($field->handle)
+            ->collect();
         if (empty($relatedEntries)) {
             return [
                 'raw' => [],
@@ -279,7 +281,9 @@ class Matrix
                 }
             } elseif ($field instanceof Entries) {
                 // Recursively process nested entries with the same filtering
-                $nestedEntries = $entry->getFieldValue($field->handle)->all();
+                $nestedEntries = $entry
+                    ->getFieldValue($field->handle)
+                    ->collect();
                 foreach ($nestedEntries as $nestedEntry) {
                     $nestedContent = $this->processRelatedEntry($nestedEntry, $fieldHandles, $isInclusiveMode);
                     if (!empty($nestedContent)) {
