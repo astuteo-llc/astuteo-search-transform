@@ -13,67 +13,32 @@ use craft\ckeditor\Field as CKEditorField;
 class MatrixCraft5
 {
     /**
-     * Extract all text content from matrix blocks and return as a single string
+     * Extract text content from matrix blocks with field filtering
      *
      * @param array|iterable $matrixBlocks The matrix blocks to process
-     * @param array $excludeHandles Optional array of field handles to exclude
-     * @return string Text content from all matrix blocks concatenated with spaces
+     * @param array $fieldHandles Handles to filter by
+     * @param bool $isInclusiveMode If true, only process fields in $fieldHandles; if false, exclude them
+     * @return string Text content from matrix blocks concatenated with spaces
      * @throws InvalidFieldException
      */
-    public function extractTextFromMatrixBlocks($matrixBlocks, array $excludeHandles = []): string
+    public function extractText($matrixBlocks, array $fieldHandles = [], bool $isInclusiveMode = false): string
     {
-        $contentArray = $this->extractTextArrayFromMatrixBlocks($matrixBlocks, $excludeHandles);
+        $contentArray = $this->extractTextArray($matrixBlocks, $fieldHandles, $isInclusiveMode);
         return implode(' ', $contentArray);
     }
 
     /**
-     * Extract text content from only the specified field handles in matrix blocks
+     * Extract text content from matrix blocks as an array with field filtering
      *
      * @param array|iterable $matrixBlocks The matrix blocks to process
-     * @param array $includeHandles Array of field handles to include (all others will be excluded)
-     * @return string Text content from included fields concatenated with spaces
-     * @throws InvalidFieldException
-     */
-    public function extractTextFromMatrixBlocksInclude($matrixBlocks, array $includeHandles): string
-    {
-        $contentArray = $this->extractTextArrayFromMatrixBlocksInclude($matrixBlocks, $includeHandles);
-        return implode(' ', $contentArray);
-    }
-
-    /**
-     * Extract all text content from matrix blocks and return as an array of strings
-     *
-     * @param array|iterable $matrixBlocks The matrix blocks to process
-     * @param array $excludeHandles Optional array of field handles to exclude
+     * @param array $fieldHandles Handles to filter by
+     * @param bool $isInclusiveMode If true, only process fields in $fieldHandles; if false, exclude them
      * @return array Array of text content extracted from matrix blocks
      * @throws InvalidFieldException
      */
-    public function extractTextArrayFromMatrixBlocks($matrixBlocks, array $excludeHandles = []): array
+    public function extractTextArray($matrixBlocks, array $fieldHandles = [], bool $isInclusiveMode = false): array
     {
-        $result = $this->extractStructuredContentFromMatrixBlocks($matrixBlocks, $excludeHandles);
-        $plainTextValues = [];
-
-        foreach ($result as $fieldValues) {
-            $this->collectPlainTextFromFields($fieldValues, 'plainTextFields', $plainTextValues);
-            $this->collectPlainTextFromFields($fieldValues, 'ckEditorFields', $plainTextValues);
-            $this->collectPlainTextFromFields($fieldValues, 'tableFields', $plainTextValues);
-            $this->collectPlainTextFromFields($fieldValues, 'entryFields', $plainTextValues);
-        }
-
-        return $plainTextValues;
-    }
-
-    /**
-     * Extract text content from only the specified field handles in matrix blocks
-     *
-     * @param array|iterable $matrixBlocks The matrix blocks to process
-     * @param array $includeHandles Array of field handles to include (all others will be excluded)
-     * @return array Array of text content extracted from matrix blocks
-     * @throws InvalidFieldException
-     */
-    public function extractTextArrayFromMatrixBlocksInclude($matrixBlocks, array $includeHandles): array
-    {
-        $result = $this->extractStructuredContentFromMatrixBlocksInclude($matrixBlocks, $includeHandles);
+        $result = $this->extractStructuredContent($matrixBlocks, $fieldHandles, $isInclusiveMode);
         $plainTextValues = [];
 
         foreach ($result as $fieldValues) {
@@ -105,14 +70,15 @@ class MatrixCraft5
     }
 
     /**
-     * Extract detailed structured content from matrix blocks with raw and plainText versions
+     * Extract detailed structured content from matrix blocks with field filtering
      *
      * @param array|iterable $matrixBlocks The matrix blocks to process
-     * @param array $excludeHandles Optional array of field handles to exclude
+     * @param array $fieldHandles Handles to filter by
+     * @param bool $isInclusiveMode If true, only process fields in $fieldHandles; if false, exclude them
      * @return array Structured array of content from matrix blocks
      * @throws InvalidFieldException
      */
-    public function extractStructuredContentFromMatrixBlocks($matrixBlocks, array $excludeHandles = []): array
+    public function extractStructuredContent($matrixBlocks, array $fieldHandles = [], bool $isInclusiveMode = false): array
     {
         $blocks = $matrixBlocks;
         $result = [];
@@ -120,9 +86,10 @@ class MatrixCraft5
         foreach ($blocks as $block) {
             $fieldValues = [];
             foreach ($block->getFieldLayout()->getCustomFields() as $field) {
-                // Skip excluded fields
-                if (in_array($field->handle, $excludeHandles, true)) {
-                    continue;
+                // Handle field filtering based on mode
+                $isFieldInHandles = in_array($field->handle, $fieldHandles, true);
+                if (($isInclusiveMode && !$isFieldInHandles) || (!$isInclusiveMode && $isFieldInHandles)) {
+                    continue; // Skip this field
                 }
 
                 if ($field instanceof PlainText) {
@@ -132,45 +99,7 @@ class MatrixCraft5
                 } elseif ($field instanceof Table) {
                     $fieldValues['tableFields'][$field->handle] = $this->processTableField($block, $field);
                 } elseif ($field instanceof Entries) {
-                    $fieldValues['entryFields'][$field->handle] = $this->processEntryField($block, $field, $excludeHandles);
-                } else {
-                    AstuteoSearchTransform::info('Unsupported field type: ' . get_class($field));
-                }
-            }
-            $result[] = $fieldValues;
-        }
-        return $result;
-    }
-
-    /**
-     * Extract detailed structured content from matrix blocks for only the specified field handles
-     *
-     * @param array|iterable $matrixBlocks The matrix blocks to process
-     * @param array $includeHandles Array of field handles to include (all others will be excluded)
-     * @return array Structured array of content from matrix blocks
-     * @throws InvalidFieldException
-     */
-    public function extractStructuredContentFromMatrixBlocksInclude($matrixBlocks, array $includeHandles): array
-    {
-        $blocks = $matrixBlocks;
-        $result = [];
-
-        foreach ($blocks as $block) {
-            $fieldValues = [];
-            foreach ($block->getFieldLayout()->getCustomFields() as $field) {
-                // Skip fields not explicitly included
-                if (!in_array($field->handle, $includeHandles, true)) {
-                    continue;
-                }
-
-                if ($field instanceof PlainText) {
-                    $fieldValues['plainTextFields'][$field->handle] = $this->processPlainTextField($block, $field);
-                } elseif ($field instanceof CKEditorField) {
-                    $fieldValues['ckEditorFields'][$field->handle] = $this->processCKEditorField($block, $field);
-                } elseif ($field instanceof Table) {
-                    $fieldValues['tableFields'][$field->handle] = $this->processTableField($block, $field);
-                } elseif ($field instanceof Entries) {
-                    $fieldValues['entryFields'][$field->handle] = $this->processEntryFieldInclude($block, $field, $includeHandles);
+                    $fieldValues['entryFields'][$field->handle] = $this->processEntryField($block, $field, $fieldHandles, $isInclusiveMode);
                 } else {
                     AstuteoSearchTransform::info('Unsupported field type: ' . get_class($field));
                 }
@@ -268,11 +197,12 @@ class MatrixCraft5
      *
      * @param Entry $block The entry block
      * @param Entries $field The field definition
-     * @param array $excludeHandles Optional array of field handles to exclude
+     * @param array $fieldHandles Handles to filter by
+     * @param bool $isInclusiveMode If true, only process fields in $fieldHandles; if false, exclude them
      * @return array An array with raw and plainText versions of the content
      * @throws InvalidFieldException
      */
-    private function processEntryField(Entry $block, Entries $field, array $excludeHandles = []): array
+    private function processEntryField(Entry $block, Entries $field, array $fieldHandles = [], bool $isInclusiveMode = false): array
     {
         $relatedEntries = $block->getFieldValue($field->handle)->all();
         if (empty($relatedEntries)) {
@@ -286,8 +216,8 @@ class MatrixCraft5
         $plainTextValues = [];
 
         foreach ($relatedEntries as $relatedEntry) {
-            // Process all fields in the related entry
-            $entryContent = $this->processRelatedEntry($relatedEntry, $excludeHandles);
+            // Process fields in the related entry with the same filtering
+            $entryContent = $this->processRelatedEntry($relatedEntry, $fieldHandles, $isInclusiveMode);
 
             if (!empty($entryContent)) {
                 $entryValues[] = $entryContent;
@@ -302,59 +232,23 @@ class MatrixCraft5
     }
 
     /**
-     * Process an Entries field with only the specified included fields
-     *
-     * @param Entry $block The entry block
-     * @param Entries $field The field definition
-     * @param array $includeHandles Array of field handles to include
-     * @return array An array with raw and plainText versions of the content
-     * @throws InvalidFieldException
-     */
-    private function processEntryFieldInclude(Entry $block, Entries $field, array $includeHandles): array
-    {
-        $relatedEntries = $block->getFieldValue($field->handle)->all();
-        if (empty($relatedEntries)) {
-            return [
-                'raw' => [],
-                'plainText' => ''
-            ];
-        }
-
-        $entryValues = [];
-        $plainTextValues = [];
-
-        foreach ($relatedEntries as $relatedEntry) {
-            // Process only included fields in the related entry
-            $entryContent = $this->processRelatedEntryInclude($relatedEntry, $includeHandles);
-
-            if (!empty($entryContent)) {
-                $entryValues[] = $entryContent;
-                $plainTextValues[] = implode(' ', $entryContent);
-            }
-        }
-
-        return [
-            'raw' => $entryValues,
-            'plainText' => implode(' ', $plainTextValues)
-        ];
-    }
-
-    /**
-     * Process a related entry recursively to extract all text content
+     * Process a related entry recursively to extract text content
      *
      * @param Entry $entry The related entry
-     * @param array $excludeHandles Optional array of field handles to exclude
+     * @param array $fieldHandles Handles to filter by
+     * @param bool $isInclusiveMode If true, only process fields in $fieldHandles; if false, exclude them
      * @return array An array of text content from the entry
      * @throws InvalidFieldException
      */
-    private function processRelatedEntry(Entry $entry, array $excludeHandles = []): array
+    private function processRelatedEntry(Entry $entry, array $fieldHandles = [], bool $isInclusiveMode = false): array
     {
         $textContent = [];
 
         foreach ($entry->getFieldLayout()->getCustomFields() as $field) {
-            // Skip excluded fields
-            if (in_array($field->handle, $excludeHandles, true)) {
-                continue;
+            // Handle field filtering based on mode
+            $isFieldInHandles = in_array($field->handle, $fieldHandles, true);
+            if (($isInclusiveMode && !$isFieldInHandles) || (!$isInclusiveMode && $isFieldInHandles)) {
+                continue; // Skip this field
             }
 
             if ($field instanceof PlainText) {
@@ -373,58 +267,10 @@ class MatrixCraft5
                     $textContent[] = $processedField['plainText'];
                 }
             } elseif ($field instanceof Entries) {
-                // Recursively process nested entries
+                // Recursively process nested entries with the same filtering
                 $nestedEntries = $entry->getFieldValue($field->handle)->all();
                 foreach ($nestedEntries as $nestedEntry) {
-                    $nestedContent = $this->processRelatedEntry($nestedEntry, $excludeHandles);
-                    if (!empty($nestedContent)) {
-                        $textContent = array_merge($textContent, $nestedContent);
-                    }
-                }
-            }
-        }
-
-        return $textContent;
-    }
-
-    /**
-     * Process a related entry recursively to extract only the specified fields
-     *
-     * @param Entry $entry The related entry
-     * @param array $includeHandles Array of field handles to include
-     * @return array An array of text content from the entry
-     * @throws InvalidFieldException
-     */
-    private function processRelatedEntryInclude(Entry $entry, array $includeHandles): array
-    {
-        $textContent = [];
-
-        foreach ($entry->getFieldLayout()->getCustomFields() as $field) {
-            // Skip fields not explicitly included
-            if (!in_array($field->handle, $includeHandles, true)) {
-                continue;
-            }
-
-            if ($field instanceof PlainText) {
-                $fieldValue = $entry->getFieldValue($field->handle);
-                if (!empty($fieldValue)) {
-                    $textContent[] = $fieldValue;
-                }
-            } elseif ($field instanceof CKEditorField) {
-                $fieldValue = $entry->getFieldValue($field->handle);
-                if (!empty($fieldValue)) {
-                    $textContent[] = (new TextExtraction)->cleanText((string)$fieldValue);
-                }
-            } elseif ($field instanceof Table) {
-                $processedField = $this->processTableField($entry, $field);
-                if (!empty($processedField['plainText'])) {
-                    $textContent[] = $processedField['plainText'];
-                }
-            } elseif ($field instanceof Entries) {
-                // Recursively process nested entries
-                $nestedEntries = $entry->getFieldValue($field->handle)->all();
-                foreach ($nestedEntries as $nestedEntry) {
-                    $nestedContent = $this->processRelatedEntryInclude($nestedEntry, $includeHandles);
+                    $nestedContent = $this->processRelatedEntry($nestedEntry, $fieldHandles, $isInclusiveMode);
                     if (!empty($nestedContent)) {
                         $textContent = array_merge($textContent, $nestedContent);
                     }
