@@ -26,7 +26,7 @@ class Matrix
     /**
      * Extract text content from matrix blocks with field filtering
      *
-     * @param array|iterable $matrixBlocks
+     * @param $matrixBlocks
      * @param array $fieldHandles
      * @param bool $isInclusiveMode
      * @return string
@@ -45,7 +45,7 @@ class Matrix
     /**
      * Extract text content from matrix blocks as an array with field filtering
      *
-     * @param array|iterable $matrixBlocks
+     * @param $matrixBlocks
      * @param array $fieldHandles
      * @param bool $isInclusiveMode
      * @return array
@@ -91,7 +91,7 @@ class Matrix
     /**
      * Extract detailed structured content from matrix blocks with field filtering
      *
-     * @param array|iterable $matrixBlocks
+     * @param $matrixBlocks
      * @param array $fieldHandles
      * @param bool $isInclusiveMode
      * @return array
@@ -151,6 +151,7 @@ class Matrix
 
     /**
      * Process a CKEditor field
+     * @DEV: To-do, we will need to support inner blocks as well as nested entries
      *
      * @param Entry $block
      * @param CKEditorField $field
@@ -220,8 +221,8 @@ class Matrix
      *
      * @param Entry $block
      * @param Entries $field
-     * @param array $fieldHandles
-     * @param bool $isInclusiveMode
+     * @param array $fieldHandles Array of field handles to process or to exclude
+     * @param bool $isInclusiveMode If true, only the specified fields will be processed
      * @return array
      * @throws InvalidFieldException
      */
@@ -267,6 +268,8 @@ class Matrix
 
     /**
      * Process a related entry recursively to extract text content
+     * Used for related blocks with relevant fields attached to
+     * entries
      *
      * @param Entry $entry
      * @param array $fieldHandles
