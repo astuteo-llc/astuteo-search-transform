@@ -12,66 +12,69 @@ use craft\ckeditor\Field as CKEditorField;
 
 class MatrixCraft5
 {
-
     /**
+     * Extract all text content from matrix blocks and return as a single string
+     *
+     * @param array|iterable $matrixBlocks The matrix blocks to process
+     * @return string Text content from all matrix blocks concatenated with spaces
      * @throws InvalidFieldException
      */
-    public function fieldsFromMatrixString($EntryQuery): string
+    public function extractTextFromMatrixBlocks($matrixBlocks): string
     {
-        $result = $this->fieldsFromMatrixArray($EntryQuery);
-        return implode(' ', $result);
+        $contentArray = $this->extractTextArrayFromMatrixBlocks($matrixBlocks);
+        return implode(' ', $contentArray);
     }
 
     /**
+     * Extract all text content from matrix blocks and return as an array of strings
+     *
+     * @param array|iterable $matrixBlocks The matrix blocks to process
+     * @return array Array of text content extracted from matrix blocks
      * @throws InvalidFieldException
      */
-    public function fieldsFromMatrixArray($EntryQuery): array
+    public function extractTextArrayFromMatrixBlocks($matrixBlocks): array
     {
-        $result = $this->fieldsFromMatrixWithRaw($EntryQuery);
+        $result = $this->extractStructuredContentFromMatrixBlocks($matrixBlocks);
         $plainTextValues = [];
-        
+
         foreach ($result as $fieldValues) {
-            if (isset($fieldValues['plainTextFields'])) {
-                foreach ($fieldValues['plainTextFields'] as $field) {
-                    if (!empty($field['plainText'])) {
-                        $plainTextValues[] = $field['plainText'];
-                    }
-                }
-            }
-            
-            if (isset($fieldValues['ckEditorFields'])) {
-                foreach ($fieldValues['ckEditorFields'] as $field) {
-                    if (!empty($field['plainText'])) {
-                        $plainTextValues[] = $field['plainText'];
-                    }
-                }
-            }
-            
-            if (isset($fieldValues['tableFields'])) {
-                foreach ($fieldValues['tableFields'] as $field) {
-                    if (!empty($field['plainText'])) {
-                        $plainTextValues[] = $field['plainText'];
-                    }
-                }
-            }
-            
-            if (isset($fieldValues['entryFields'])) {
-                foreach ($fieldValues['entryFields'] as $field) {
-                    if (!empty($field['plainText'])) {
-                        $plainTextValues[] = $field['plainText'];
-                    }
-                }
-            }
+            $this->collectPlainTextFromFields($fieldValues, 'plainTextFields', $plainTextValues);
+            $this->collectPlainTextFromFields($fieldValues, 'ckEditorFields', $plainTextValues);
+            $this->collectPlainTextFromFields($fieldValues, 'tableFields', $plainTextValues);
+            $this->collectPlainTextFromFields($fieldValues, 'entryFields', $plainTextValues);
         }
+
         return $plainTextValues;
     }
 
     /**
+     * Helper method to collect plain text values from different field types
+     *
+     * @param array $fieldValues The field values array
+     * @param string $fieldType The field type key to check
+     * @param array &$plainTextValues Reference to array where values will be collected
+     */
+    private function collectPlainTextFromFields(array $fieldValues, string $fieldType, array &$plainTextValues): void
+    {
+        if (isset($fieldValues[$fieldType])) {
+            foreach ($fieldValues[$fieldType] as $field) {
+                if (!empty($field['plainText'])) {
+                    $plainTextValues[] = $field['plainText'];
+                }
+            }
+        }
+    }
+
+    /**
+     * Extract detailed structured content from matrix blocks with raw and plainText versions
+     *
+     * @param array|iterable $matrixBlocks The matrix blocks to process
+     * @return array Structured array of content from matrix blocks
      * @throws InvalidFieldException
      */
-    public function fieldsFromMatrixWithRaw($EntryQuery): array
+    public function extractStructuredContentFromMatrixBlocks($matrixBlocks): array
     {
-        $blocks = $EntryQuery;
+        $blocks = $matrixBlocks;
         $result = [];
 
         foreach ($blocks as $block) {
@@ -104,9 +107,10 @@ class MatrixCraft5
      */
     private function processPlainTextField(Entry $block, PlainText $field): array
     {
+        $value = $block->getFieldValue($field->handle);
         return [
-            'raw' => $block->getFieldValue($field->handle),
-            'plainText' => $block->getFieldValue($field->handle)
+            'raw' => $value,
+            'plainText' => $value
         ];
     }
 
@@ -155,7 +159,7 @@ class MatrixCraft5
             ];
         }
         $columns = $field->columns;
-        
+
         $tableValues = [];
         $plainTextValues = [];
 
@@ -200,7 +204,7 @@ class MatrixCraft5
         foreach ($relatedEntries as $relatedEntry) {
             // Process all fields in the related entry
             $entryContent = $this->processRelatedEntry($relatedEntry);
-            
+
             if (!empty($entryContent)) {
                 $entryValues[] = $entryContent;
                 $plainTextValues[] = implode(' ', $entryContent);

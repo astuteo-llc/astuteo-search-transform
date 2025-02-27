@@ -46,7 +46,7 @@ class TextExtraction extends Component
 
     public function extractTextFromMatrix($field)
     {
-        return (new MatrixCraft5)->fieldsFromMatrixString($field);
+        return (new MatrixCraft5)->extractTextFromMatrixBlocks($field);
     }
 
 
