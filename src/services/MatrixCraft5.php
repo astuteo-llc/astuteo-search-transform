@@ -16,12 +16,13 @@ class MatrixCraft5
      * Extract all text content from matrix blocks and return as a single string
      *
      * @param array|iterable $matrixBlocks The matrix blocks to process
+     * @param array $excludeHandles Optional array of field handles to exclude
      * @return string Text content from all matrix blocks concatenated with spaces
      * @throws InvalidFieldException
      */
-    public function extractTextFromMatrixBlocks($matrixBlocks): string
+    public function extractTextFromMatrixBlocks($matrixBlocks, array $excludeHandles = []): string
     {
-        $contentArray = $this->extractTextArrayFromMatrixBlocks($matrixBlocks);
+        $contentArray = $this->extractTextArrayFromMatrixBlocks($matrixBlocks, $excludeHandles);
         return implode(' ', $contentArray);
     }
 
@@ -29,12 +30,13 @@ class MatrixCraft5
      * Extract all text content from matrix blocks and return as an array of strings
      *
      * @param array|iterable $matrixBlocks The matrix blocks to process
+     * @param array $excludeHandles Optional array of field handles to exclude
      * @return array Array of text content extracted from matrix blocks
      * @throws InvalidFieldException
      */
-    public function extractTextArrayFromMatrixBlocks($matrixBlocks): array
+    public function extractTextArrayFromMatrixBlocks($matrixBlocks, array $excludeHandles = []): array
     {
-        $result = $this->extractStructuredContentFromMatrixBlocks($matrixBlocks);
+        $result = $this->extractStructuredContentFromMatrixBlocks($matrixBlocks, $excludeHandles);
         $plainTextValues = [];
 
         foreach ($result as $fieldValues) {
@@ -69,10 +71,11 @@ class MatrixCraft5
      * Extract detailed structured content from matrix blocks with raw and plainText versions
      *
      * @param array|iterable $matrixBlocks The matrix blocks to process
+     * @param array $excludeHandles Optional array of field handles to exclude
      * @return array Structured array of content from matrix blocks
      * @throws InvalidFieldException
      */
-    public function extractStructuredContentFromMatrixBlocks($matrixBlocks): array
+    public function extractStructuredContentFromMatrixBlocks($matrixBlocks, array $excludeHandles = []): array
     {
         $blocks = $matrixBlocks;
         $result = [];
@@ -80,6 +83,11 @@ class MatrixCraft5
         foreach ($blocks as $block) {
             $fieldValues = [];
             foreach ($block->getFieldLayout()->getCustomFields() as $field) {
+                // Skip excluded fields
+                if (in_array($field->handle, $excludeHandles, true)) {
+                    continue;
+                }
+
                 if ($field instanceof PlainText) {
                     $fieldValues['plainTextFields'][$field->handle] = $this->processPlainTextField($block, $field);
                 } elseif ($field instanceof CKEditorField) {
@@ -87,7 +95,7 @@ class MatrixCraft5
                 } elseif ($field instanceof Table) {
                     $fieldValues['tableFields'][$field->handle] = $this->processTableField($block, $field);
                 } elseif ($field instanceof Entries) {
-                    $fieldValues['entryFields'][$field->handle] = $this->processEntryField($block, $field);
+                    $fieldValues['entryFields'][$field->handle] = $this->processEntryField($block, $field, $excludeHandles);
                 } else {
                     AstuteoSearchTransform::info('Unsupported field type: ' . get_class($field));
                 }
@@ -185,10 +193,11 @@ class MatrixCraft5
      *
      * @param Entry $block The entry block
      * @param Entries $field The field definition
+     * @param array $excludeHandles Optional array of field handles to exclude
      * @return array An array with raw and plainText versions of the content
      * @throws InvalidFieldException
      */
-    private function processEntryField(Entry $block, Entries $field): array
+    private function processEntryField(Entry $block, Entries $field, array $excludeHandles = []): array
     {
         $relatedEntries = $block->getFieldValue($field->handle)->all();
         if (empty($relatedEntries)) {
@@ -203,7 +212,7 @@ class MatrixCraft5
 
         foreach ($relatedEntries as $relatedEntry) {
             // Process all fields in the related entry
-            $entryContent = $this->processRelatedEntry($relatedEntry);
+            $entryContent = $this->processRelatedEntry($relatedEntry, $excludeHandles);
 
             if (!empty($entryContent)) {
                 $entryValues[] = $entryContent;
@@ -221,14 +230,20 @@ class MatrixCraft5
      * Process a related entry recursively to extract all text content
      *
      * @param Entry $entry The related entry
+     * @param array $excludeHandles Optional array of field handles to exclude
      * @return array An array of text content from the entry
      * @throws InvalidFieldException
      */
-    private function processRelatedEntry(Entry $entry): array
+    private function processRelatedEntry(Entry $entry, array $excludeHandles = []): array
     {
         $textContent = [];
 
         foreach ($entry->getFieldLayout()->getCustomFields() as $field) {
+            // Skip excluded fields
+            if (in_array($field->handle, $excludeHandles, true)) {
+                continue;
+            }
+
             if ($field instanceof PlainText) {
                 $fieldValue = $entry->getFieldValue($field->handle);
                 if (!empty($fieldValue)) {
@@ -248,7 +263,7 @@ class MatrixCraft5
                 // Recursively process nested entries
                 $nestedEntries = $entry->getFieldValue($field->handle)->all();
                 foreach ($nestedEntries as $nestedEntry) {
-                    $nestedContent = $this->processRelatedEntry($nestedEntry);
+                    $nestedContent = $this->processRelatedEntry($nestedEntry, $excludeHandles);
                     if (!empty($nestedContent)) {
                         $textContent = array_merge($textContent, $nestedContent);
                     }

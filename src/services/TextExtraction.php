@@ -44,9 +44,9 @@ class TextExtraction extends Component
         return $this->matrixCopy($matrix, $handle, $include);
     }
 
-    public function extractTextFromMatrix($field)
+    public function extractTextFromMatrix($field, array $excludeHandles = []): string
     {
-        return (new MatrixCraft5)->extractTextFromMatrixBlocks($field);
+        return (new MatrixCraft5)->extractTextFromMatrixBlocks($field, $excludeHandles);
     }
 
 

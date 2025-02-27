@@ -11,8 +11,8 @@ use astuteo\astuteosearchtransform\services\TextExtraction;
  */
 class DevHelpers extends Component
 {
-    public function getFieldPreview($field)
+    public function getFieldPreview($field, $excludeHandles = [])
     {
-        return (new TextExtraction)->extractTextFromMatrix($field);
+        return (new TextExtraction)->extractTextFromMatrix($field, $excludeHandles);
     }
 }
