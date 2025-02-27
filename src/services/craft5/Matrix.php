@@ -1,8 +1,10 @@
 <?php
 
-namespace astuteo\astuteosearchtransform\services;
+namespace astuteo\astuteosearchtransform\services\craft5;
 
 use astuteo\astuteosearchtransform\AstuteoSearchTransform;
+use astuteo\astuteosearchtransform\services\TextExtraction;
+
 use craft\elements\Entry;
 use craft\errors\InvalidFieldException;
 use craft\fields\PlainText;
@@ -10,8 +12,17 @@ use craft\fields\Table;
 use craft\fields\Entries;
 use craft\ckeditor\Field as CKEditorField;
 
-class MatrixCraft5
+
+class Matrix
 {
+    /**
+     * Field type constants for better readability and maintainability
+     */
+    private const FIELD_TYPE_PLAIN_TEXT = 'plainTextFields';
+    private const FIELD_TYPE_CKEDITOR = 'ckEditorFields';
+    private const FIELD_TYPE_TABLE = 'tableFields';
+    private const FIELD_TYPE_ENTRIES = 'entryFields';
+
     /**
      * Extract text content from matrix blocks with field filtering
      *
@@ -42,10 +53,10 @@ class MatrixCraft5
         $plainTextValues = [];
 
         foreach ($result as $fieldValues) {
-            $this->collectPlainTextFromFields($fieldValues, 'plainTextFields', $plainTextValues);
-            $this->collectPlainTextFromFields($fieldValues, 'ckEditorFields', $plainTextValues);
-            $this->collectPlainTextFromFields($fieldValues, 'tableFields', $plainTextValues);
-            $this->collectPlainTextFromFields($fieldValues, 'entryFields', $plainTextValues);
+            $this->collectPlainTextFromFields($fieldValues, self::FIELD_TYPE_PLAIN_TEXT, $plainTextValues);
+            $this->collectPlainTextFromFields($fieldValues, self::FIELD_TYPE_CKEDITOR, $plainTextValues);
+            $this->collectPlainTextFromFields($fieldValues, self::FIELD_TYPE_TABLE, $plainTextValues);
+            $this->collectPlainTextFromFields($fieldValues, self::FIELD_TYPE_ENTRIES, $plainTextValues);
         }
 
         return $plainTextValues;
@@ -93,13 +104,13 @@ class MatrixCraft5
                 }
 
                 if ($field instanceof PlainText) {
-                    $fieldValues['plainTextFields'][$field->handle] = $this->processPlainTextField($block, $field);
+                    $fieldValues[self::FIELD_TYPE_PLAIN_TEXT][$field->handle] = $this->processPlainTextField($block, $field);
                 } elseif ($field instanceof CKEditorField) {
-                    $fieldValues['ckEditorFields'][$field->handle] = $this->processCKEditorField($block, $field);
+                    $fieldValues[self::FIELD_TYPE_CKEDITOR][$field->handle] = $this->processCKEditorField($block, $field);
                 } elseif ($field instanceof Table) {
-                    $fieldValues['tableFields'][$field->handle] = $this->processTableField($block, $field);
+                    $fieldValues[self::FIELD_TYPE_TABLE][$field->handle] = $this->processTableField($block, $field);
                 } elseif ($field instanceof Entries) {
-                    $fieldValues['entryFields'][$field->handle] = $this->processEntryField($block, $field, $fieldHandles, $isInclusiveMode);
+                    $fieldValues[self::FIELD_TYPE_ENTRIES][$field->handle] = $this->processEntryField($block, $field, $fieldHandles, $isInclusiveMode);
                 } else {
                     AstuteoSearchTransform::info('Unsupported field type: ' . get_class($field));
                 }

@@ -2,6 +2,8 @@
 
 namespace astuteo\astuteosearchtransform\services;
 
+use astuteo\astuteosearchtransform\services\craft5\Matrix;
+
 use Craft;
 use craft\base\Component;
 use craft\elements\Asset;
@@ -54,7 +56,7 @@ class TextExtraction extends Component
      */
     public function extractTextFromMatrix($field, array $fieldHandles = [], bool $includeOnly = false): string
     {
-        return (new MatrixCraft5)->extractText($field, $fieldHandles, $includeOnly);
+        return (new Matrix)->extractText($field, $fieldHandles, $includeOnly);
     }
 
     /**

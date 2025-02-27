@@ -85,12 +85,29 @@ $text = $textExtraction->extractEntryText($entry);
 $text = $textExtraction->extractEntryText($entry, ['body', 'summary', 'metaDescription']);
 ```
 
-##### `extractMatrixText(object $matrix, string $handle, array $include = []): string`
+##### `extractTextFromMatrix(mixed $field, array $fieldHandles = [], bool $includeOnly = false): string` (Craft 5+)
+
+Extracts text from a matrix field with flexible field filtering options.
+
+```php
+// Extract text from all fields in a matrix
+$text = $textExtraction->extractTextFromMatrix($entry->matrixField);
+
+// Extract text excluding specific fields
+$text = $textExtraction->extractTextFromMatrix($entry->matrixField, ['metaDescription', 'internalNotes']);
+
+// Extract text including only specific fields
+$text = $textExtraction->extractTextFromMatrix($entry->matrixField, ['title', 'mainContent', 'summary'], true);
+```
+
+##### `extractMatrixText(object $matrix, string $handle, array $include = []): string` (Deprecated for Craft 5+)
+
+> **Deprecated in Craft 5**: This method is maintained for backward compatibility with Craft 4, but for Craft 5 projects, use `extractTextFromMatrix()` instead.
 
 Extracts text from a matrix field, optionally limiting to specific block types.
 
 ```php
-// Extract text from a matrix field
+// Extract text from a matrix field (Craft 4)
 $text = $textExtraction->extractMatrixText($entry, 'contentBlocks', ['text', 'heading']);
 ```
 
@@ -175,6 +192,37 @@ $imageUrls = $entryHelpers->getImages($entry, 'galleryImages');
 // Returns: ['https://example.com/image1.jpg', 'https://example.com/image2.jpg']
 ```
 
+## Matrix Processing in Craft 5
+
+Craft 5 introduces a new approach to processing Matrix fields with more flexible field filtering options:
+
+```php
+use astuteo\astuteosearchtransform\AstuteoSearchTransform;
+
+// Get all text from a matrix field
+$text = $textExtraction->extractTextFromMatrix($entry->matrixField);
+
+// Exclude specific fields
+$text = $textExtraction->extractTextFromMatrix($entry->matrixField, ['metaDescription', 'internalNotes']);
+
+// Include only specific fields
+$text = $textExtraction->extractTextFromMatrix($entry->matrixField, ['title', 'mainContent'], true);
+```
+
+You can also access the Matrix service directly for more advanced operations:
+
+```php
+use astuteo\astuteosearchtransform\services\craft5\Matrix;
+
+$matrixService = new Matrix();
+
+// Get text as an array
+$textArray = $matrixService->extractTextArray($entry->matrixField);
+
+// Get full structured content
+$structuredContent = $matrixService->extractStructuredContent($entry->matrixField);
+```
+
 ## Example: Preparing Entry Data for Algolia
 
 Here's a practical example of using the plugin to prepare entry data for Algolia indexing:
@@ -192,6 +240,7 @@ function prepareEntryForAlgolia($entry)
         'title' => $entry->title,
         'url' => $entry->url,
         'content' => $textExtraction->extractEntryText($entry, ['body', 'summary']),
+        'matrixContent' => $textExtraction->extractTextFromMatrix($entry->contentBlocks),
         'categories' => $entryHelpers->getRelatedTitles($entry, 'categories'),
         'imageUrl' => $entryHelpers->getImage($entry, 'featuredImage'),
         'gallery' => $entryHelpers->getImages($entry, 'galleryImages'),
