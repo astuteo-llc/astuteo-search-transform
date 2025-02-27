@@ -192,6 +192,109 @@ $imageUrls = $entryHelpers->getImages($entry, 'galleryImages');
 // Returns: ['https://example.com/image1.jpg', 'https://example.com/image2.jpg']
 ```
 
+### AssetHelpers Service
+
+This service provides utility methods for working with assets in entries.
+
+```php
+// Access the AssetHelpers service
+$assetHelpers = \astuteo\astuteosearchtransform\AstuteoSearchTransform::getInstance()->assetHelpers;
+```
+
+#### Available Methods:
+
+##### `getFirstAsset(ElementInterface $entry, string|array|null $handle = null): ?Asset`
+
+Gets the first asset from an entry based on field handle(s).
+
+```php
+// Get the first asset from a field directly
+$asset = $assetHelpers->getFirstAsset($entry->image);
+
+// Get the first asset from a specific field
+$asset = $assetHelpers->getFirstAsset($entry, 'image');
+
+// Get the first asset from multiple fields (tries each in order until one is found)
+$asset = $assetHelpers->getFirstAsset($entry, ['featuredImage', 'thumbnail', 'fallbackImage']);
+```
+
+##### `getFirstAssetUrl(ElementInterface $entry, string|array|null $handle = null): string`
+
+Gets the URL of the first asset from an entry based on field handle(s).
+
+```php
+// Get the URL of the first asset from a field directly
+$url = $assetHelpers->getFirstAssetUrl($entry->image);
+
+// Get the URL of the first asset from a specific field
+$url = $assetHelpers->getFirstAssetUrl($entry, 'image');
+
+// Get the URL of the first asset from multiple fields (tries each in order until one is found)
+$url = $assetHelpers->getFirstAssetUrl($entry, ['featuredImage', 'thumbnail', 'fallbackImage']);
+```
+
+##### `getFirstAssetTransformUrl(ElementInterface $entry, string|array|null $handle = null, array|string|null $transform = null, ?bool $immediately = null): string`
+
+Gets the URL of the first asset with a transform applied from an entry based on field handle(s).
+
+```php
+// Get the URL of the first asset with a named transform
+$url = $assetHelpers->getFirstAssetTransformUrl($entry, 'image', 'thumbnail');
+
+// Get the URL of the first asset with a custom transform
+$url = $assetHelpers->getFirstAssetTransformUrl($entry, 'image', [
+    'width' => 800,
+    'height' => 600,
+    'mode' => 'crop'
+]);
+
+// Get the URL of the first asset from multiple fields with a transform
+$url = $assetHelpers->getFirstAssetTransformUrl($entry, ['featuredImage', 'thumbnail'], 'thumbnail');
+```
+
+##### `getAllAssets(ElementInterface $entry, string|array $handle): array`
+
+Gets all assets from an entry based on field handle(s).
+
+```php
+// Get all assets from a specific field
+$assets = $assetHelpers->getAllAssets($entry, 'gallery');
+
+// Get all assets from multiple fields
+$assets = $assetHelpers->getAllAssets($entry, ['gallery', 'attachments']);
+```
+
+##### `getAllAssetUrls(ElementInterface $entry, string|array $handle): array`
+
+Gets an array of asset URLs from an entry based on field handle(s).
+
+```php
+// Get all asset URLs from a specific field
+$urls = $assetHelpers->getAllAssetUrls($entry, 'gallery');
+
+// Get all asset URLs from multiple fields
+$urls = $assetHelpers->getAllAssetUrls($entry, ['gallery', 'attachments']);
+```
+
+##### `getAllAssetTransformUrls(ElementInterface $entry, string|array $handle, array|string|null $transform = null, ?bool $immediately = null): array`
+
+Gets an array of transformed asset URLs from an entry based on field handle(s).
+
+```php
+// Get all asset URLs with a named transform
+$urls = $assetHelpers->getAllAssetTransformUrls($entry, 'gallery', 'thumbnail');
+
+// Get all asset URLs with a custom transform
+$urls = $assetHelpers->getAllAssetTransformUrls($entry, 'gallery', [
+    'width' => 400,
+    'height' => 300,
+    'mode' => 'crop'
+]);
+
+// Get all asset URLs from multiple fields with a transform
+$urls = $assetHelpers->getAllAssetTransformUrls($entry, ['gallery', 'attachments'], 'thumbnail');
+```
+
 ## Matrix Processing in Craft 5
 
 Craft 5 introduces a new approach to processing Matrix fields with more flexible field filtering options:
