@@ -13,6 +13,7 @@ namespace astuteo\astuteosearchtransform;
 use astuteo\astuteosearchtransform\services\DevHelpers;
 use astuteo\astuteosearchtransform\services\TextExtraction;
 use astuteo\astuteosearchtransform\services\EntryHelpers;
+use astuteo\astuteosearchtransform\services\AssetHelpers;
 use astuteo\astuteosearchtransform\services\AstuteoSearchTransformService;
 use astuteo\astuteosearchtransform\variables\PreviewVariables;
 
@@ -31,6 +32,7 @@ use craft\web\twig\variables\CraftVariable;
  * @property TextExtraction $textExtraction The text extraction service
  * @property EntryHelpers $entryHelpers The entry helpers service
  * @property-read DevHelpers $devHelpers
+ * @property AssetHelpers $assetHelpers The asset helpers service
  * @package astuteo\astuteosearchtransform
  */
 class AstuteoSearchTransform extends Plugin
@@ -43,7 +45,7 @@ class AstuteoSearchTransform extends Plugin
     /**
      * @var string
      */
-    public string $schemaVersion = '5.4.0';
+    public string $schemaVersion = '6.0.0';
     
     /**
      * Log category used for all plugin logging
@@ -59,6 +61,11 @@ class AstuteoSearchTransform extends Plugin
      * @var EntryHelpers|null
      */
     public ?EntryHelpers $entryHelpers = null;
+
+    /**
+     * @var AssetHelpers|null
+     */
+    public ?AssetHelpers $assetHelpers = null;
 
     /**
      * Initializes the plugin.
@@ -77,6 +84,7 @@ class AstuteoSearchTransform extends Plugin
             'textExtraction' => TextExtraction::class,
             'entryHelpers' => EntryHelpers::class,
             'devHelpers' => DevHelpers::class,
+            'assetHelpers' => AssetHelpers::class,
         ]);
 
         // Log successful initialization
