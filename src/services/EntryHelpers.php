@@ -26,15 +26,41 @@ class EntryHelpers extends Component
      * Get an array of titles from a given relationship field (categories or entries).
      *
      * @param Entry|null $entry The entry to get related elements from
-     * @param string $handle The field handle
+     * @param string|array<string> $handle The field handle or array of field handles
      * @return array<string> An array of related element titles
      */
-    public function getRelatedTitles(?Entry $entry, string $handle): array
+    public function getRelatedTitles(?Entry $entry, string|array $handle): array
     {
         if (!$entry) {
             return [];
         }
 
+        // If handle is a string, process it directly
+        if (is_string($handle)) {
+            return $this->processRelatedField($entry, $handle);
+        }
+
+        // If handle is an array, process each handle and merge the results
+        if (is_array($handle)) {
+            $titles = [];
+            foreach ($handle as $fieldHandle) {
+                $titles = array_merge($titles, $this->processRelatedField($entry, $fieldHandle));
+            }
+            return $titles;
+        }
+
+        return [];
+    }
+
+    /**
+     * Process a single related field to extract titles.
+     *
+     * @param Entry $entry The entry to get related elements from
+     * @param string $handle The field handle
+     * @return array<string> An array of related element titles
+     */
+    private function processRelatedField(Entry $entry, string $handle): array
+    {
         $field = $entry->getFieldValue($handle);
         if (!$field) {
             return [];
