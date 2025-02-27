@@ -7,6 +7,7 @@ use craft\base\Component;
 use craft\elements\Asset;
 use craft\helpers\StringHelper;
 use Exception;
+use astuteo\astuteosearchtransform\services\MatrixCraft5;
 
 /**
  * Text Extraction provides methods for extracting and transforming text
@@ -43,6 +44,14 @@ class TextExtraction extends Component
     {
         return $this->matrixCopy($matrix, $handle, $include);
     }
+
+    public function extractTextFromMatrix($field)
+    {
+        $field->count();
+        $content = (new MatrixCraft5)->fieldsFromMatrix($field);
+        return $field->count();
+    }
+
 
     /**
      * Extracts text from an entry.

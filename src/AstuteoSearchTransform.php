@@ -10,21 +10,27 @@
  */
 namespace astuteo\astuteosearchtransform;
 
+use astuteo\astuteosearchtransform\services\DevHelpers;
 use astuteo\astuteosearchtransform\services\TextExtraction;
 use astuteo\astuteosearchtransform\services\EntryHelpers;
 use astuteo\astuteosearchtransform\services\AstuteoSearchTransformService;
+use astuteo\astuteosearchtransform\variables\PreviewVariables;
 
 use Craft;
 use craft\base\Plugin;
 use craft\log\MonologTarget;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Logger;
+use yii\base\Event;
+use craft\web\twig\variables\CraftVariable;
+
 
 /**
  * Class AstuteoSearchTransform
  *
  * @property TextExtraction $textExtraction The text extraction service
  * @property EntryHelpers $entryHelpers The entry helpers service
+ * @property-read DevHelpers $devHelpers
  * @package astuteo\astuteosearchtransform
  */
 class AstuteoSearchTransform extends Plugin
@@ -64,6 +70,7 @@ class AstuteoSearchTransform extends Plugin
 
         // Register logger
         $this->registerLogTarget();
+        $this->registerVariables();
         
         // Log initialization
         self::info('Astuteo Search Transform plugin initializing');
@@ -72,6 +79,7 @@ class AstuteoSearchTransform extends Plugin
         $this->setComponents([
             'textExtraction' => TextExtraction::class,
             'entryHelpers' => EntryHelpers::class,
+            'devHelpers' => DevHelpers::class,
         ]);
 
         // Log successful initialization
@@ -90,6 +98,20 @@ class AstuteoSearchTransform extends Plugin
                 ['name' => $this->name]
             ),
             __METHOD__
+        );
+    }
+
+    private function registerVariables(): void
+    {
+        // Register Craft Variable
+        Event::on(
+            CraftVariable::class,
+            CraftVariable::EVENT_INIT,
+            function (Event $event) {
+                /** @var CraftVariable $variable */
+                $variable = $event->sender;
+                $variable->set('searchPreview', PreviewVariables::class);
+            }
         );
     }
 
