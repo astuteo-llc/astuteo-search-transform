@@ -36,12 +36,16 @@ class TextExtraction extends Component
     /**
      * Extracts text from a matrix field.
      *
-     * @param object $matrix The matrix field object
-     * @param string $handle The handle of the matrix field
-     * @param array<string> $include Optional array of block types to include
+     * @param object $matrix
+     * @param string $handle
+     * @param array<string> $include
      * @return string The extracted and cleaned text
      */
-    public function extractMatrixText(object $matrix, string $handle, array $include = []): string
+    public function extractMatrixText(
+        object $matrix,
+        string $handle,
+        array $include = []
+    ): string
     {
         return $this->matrixCopy($matrix, $handle, $include);
     }
@@ -49,12 +53,16 @@ class TextExtraction extends Component
     /**
      * Extracts text from a matrix field with optional field filtering
      *
-     * @param mixed $field The matrix field
-     * @param array $fieldHandles Field handles to filter by (exclude or include)
-     * @param bool $includeOnly If true, only include specified handles; if false, exclude them
+     * @param mixed $field
+     * @param array $fieldHandles
+     * @param bool $includeOnly
      * @return string The extracted text content
      */
-    public function extractTextFromMatrix($field, array $fieldHandles = [], bool $includeOnly = false): string
+    public function extractTextFromMatrix(
+        $field,
+        array $fieldHandles = [],
+        bool $includeOnly = false
+    ): string
     {
         return (new Matrix)->extractText($field, $fieldHandles, $includeOnly);
     }
@@ -62,11 +70,14 @@ class TextExtraction extends Component
     /**
      * Extracts text from an entry.
      *
-     * @param object $entry The entry object
-     * @param array<string> $include Optional array of fields to include
+     * @param object $entry
+     * @param array $include
      * @return string The extracted and cleaned text
      */
-    public function extractEntryText(object $entry, array $include = []): string
+    public function extractEntryText(
+        object $entry,
+        array $include = []
+    ): string
     {
         $fields = $entry->toArray();
         $text = '';
@@ -109,12 +120,16 @@ class TextExtraction extends Component
     /**
      * Extracts text from a matrix field.
      *
-     * @param object $entry The entry object
-     * @param string $handle The handle of the matrix field
-     * @param array<string> $include Array of block types to include
+     * @param object $entry
+     * @param string $handle
+     * @param array<string> $include
      * @return string The extracted and cleaned text
      */
-    public function matrixCopy(object $entry, string $handle, array $include): string
+    public function matrixCopy(
+        object $entry,
+        string $handle,
+        array $include
+    ): string
     {
         if (!property_exists($entry, $handle) || !$entry->$handle) {
             return '';
@@ -144,12 +159,16 @@ class TextExtraction extends Component
     /**
      * Parses fields and extracts text.
      *
-     * @param array<string,mixed> $fields Array of fields to parse
-     * @param array<string> $fieldsToExtract Array of fields to extract
-     * @param bool $related Whether to parse related entries
+     * @param array<string,mixed> $fields
+     * @param array<string> $fieldsToExtract
+     * @param bool $related
      * @return string The parsed and cleaned text
      */
-    public function parseFields(array $fields, array $fieldsToExtract = self::DEFAULT_EXTRACT_FIELDS, bool $related = true): string
+    public function parseFields(
+        array $fields,
+        array $fieldsToExtract = self::DEFAULT_EXTRACT_FIELDS,
+        bool $related = true
+    ): string
     {
         $text = '';
 
@@ -188,11 +207,14 @@ class TextExtraction extends Component
     /**
      * Extracts string value from field value.
      *
-     * @param mixed $fieldValue The field value
-     * @param bool $related Whether to parse related entries
+     * @param mixed $fieldValue
+     * @param bool $related
      * @return string The extracted string
      */
-    private function extractStringValue(mixed $fieldValue, bool $related): string
+    private function extractStringValue(
+        mixed $fieldValue,
+        bool $related
+    ): string
     {
         return match(true) {
             is_string($fieldValue) => $fieldValue,
@@ -210,11 +232,14 @@ class TextExtraction extends Component
     /**
      * Chunks text into smaller parts.
      *
-     * @param string $content The text to chunk
-     * @param int $maxSize The maximum size of each chunk
+     * @param string $content
+     * @param int $maxSize
      * @return array<string> An array of text chunks
      */
-    public function chunkText(string $content, int $maxSize = 3500): array
+    public function chunkText(
+        string $content,
+        int $maxSize = 3500
+    ): array
     {
         return $this->splitLongText($content, $maxSize);
     }
@@ -244,11 +269,14 @@ class TextExtraction extends Component
     /**
      * Splits long text into smaller parts.
      *
-     * @param string $text The text to split
-     * @param int $max The maximum length of each part
+     * @param string $text
+     * @param int $max
      * @return array<string> An array of text parts
      */
-    public function splitLongText(string $text, int $max = 3500): array
+    public function splitLongText(
+        string $text,
+        int $max = 3500
+    ): array
     {
         $text = $this->cleanText($text);
         $parts = [];

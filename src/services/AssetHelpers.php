@@ -28,11 +28,14 @@ class AssetHelpers extends Component
      * 2. With an entry and a string handle: ($entry, 'image')
      * 3. With an entry and an array of handles: ($entry, ['image', 'fallback'])
      *
-     * @param ElementInterface $entry The entry to get the asset from
-     * @param string|array|null $handle The field handle, array of handles, or null if using direct field
+     * @param ElementInterface $entry
+     * @param string|array|null $handle
      * @return Asset|null The first asset found or null
      */
-    public function getFirstAsset(ElementInterface $entry, string|array|null $handle = null): ?Asset
+    public function getFirstAsset(
+        ElementInterface $entry,
+        string|array|null $handle = null
+    ): ?Asset
     {
         // Case 1: Direct field access ($entry->image)
         if ($handle === null && $entry instanceof Asset) {
@@ -88,11 +91,14 @@ class AssetHelpers extends Component
     /**
      * Get the URL of the first asset from an entry based on field handle(s).
      *
-     * @param ElementInterface $entry The entry to get the asset URL from
-     * @param string|array|null $handle The field handle, array of handles, or null if using direct field
+     * @param ElementInterface $entry
+     * @param string|array|null $handle
      * @return string The URL of the first asset or an empty string
      */
-    public function getFirstAssetUrl(ElementInterface $entry, string|array|null $handle = null): string
+    public function getFirstAssetUrl(
+        ElementInterface $entry,
+        string|array|null $handle = null
+    ): string
     {
         $asset = $this->getFirstAsset($entry, $handle);
         if (!$asset) {
@@ -116,7 +122,12 @@ class AssetHelpers extends Component
      * @param bool|null $immediately Whether the transform should be generated immediately (optional)
      * @return string The URL of the first transformed asset or an empty string
      */
-    public function getFirstAssetTransformUrl(ElementInterface $entry, string|array|null $handle = null, array|string|null $transform = null, ?bool $immediately = null): string
+    public function getFirstAssetTransformUrl(
+        ElementInterface $entry,
+        string|array|null $handle = null,
+        array|string|null $transform = null,
+        ?bool $immediately = null
+    ): string
     {
         $asset = $this->getFirstAsset($entry, $handle);
         if (!$asset) {
@@ -134,11 +145,14 @@ class AssetHelpers extends Component
     /**
      * Get all assets from an entry based on field handle(s).
      *
-     * @param ElementInterface $entry The entry to get assets from
-     * @param string|array $handle The field handle or array of handles
+     * @param ElementInterface $entry
+     * @param string|array $handle
      * @return array<Asset> An array of assets
      */
-    public function getAllAssets(ElementInterface $entry, string|array $handle): array
+    public function getAllAssets(
+        ElementInterface $entry,
+        string|array $handle
+    ): array
     {
         // Case 1: String handle
         if (is_string($handle)) {
@@ -160,11 +174,14 @@ class AssetHelpers extends Component
     /**
      * Get assets from a specific field.
      *
-     * @param ElementInterface $entry The entry to get assets from
-     * @param string $handle The field handle
+     * @param ElementInterface $entry
+     * @param string $handle
      * @return array<Asset> An array of assets
      */
-    private function getAssetsFromField(ElementInterface $entry, string $handle): array
+    private function getAssetsFromField(
+        ElementInterface $entry,
+        string $handle
+    ): array
     {
         try {
             $field = $entry->getFieldValue($handle);
@@ -188,11 +205,14 @@ class AssetHelpers extends Component
     /**
      * Get an array of asset URLs from an entry based on field handle(s).
      *
-     * @param ElementInterface $entry The entry to get asset URLs from
-     * @param string|array $handle The field handle or array of handles
+     * @param ElementInterface $entry
+     * @param string|array $handle
      * @return array<string> An array of asset URLs
      */
-    public function getAllAssetUrls(ElementInterface $entry, string|array $handle): array
+    public function getAllAssetUrls(
+        ElementInterface $entry,
+        string|array $handle
+    ): array
     {
         $assets = $this->getAllAssets($entry, $handle);
         $urls = [];
@@ -220,7 +240,11 @@ class AssetHelpers extends Component
      * @param bool|null $immediately Whether the transform should be generated immediately (optional)
      * @return array<string> An array of transformed asset URLs
      */
-    public function getAllAssetTransformUrls(ElementInterface $entry, string|array $handle, array|string|null $transform = null, ?bool $immediately = null): array
+    public function getAllAssetTransformUrls(
+        ElementInterface $entry,
+        string|array $handle,
+        array|string|null $transform = null,
+        ?bool $immediately = null): array
     {
         $assets = $this->getAllAssets($entry, $handle);
         $urls = [];

@@ -29,7 +29,10 @@ class EntryHelpers extends Component
      * @param string|array<string> $handle The field handle or array of field handles
      * @return array<string> An array of related element titles
      */
-    public function getRelatedTitles(?Entry $entry, string|array $handle): array
+    public function getRelatedTitles(
+        ?Entry $entry,
+        string|array $handle
+    ): array
     {
         if (!$entry) {
             return [];
@@ -55,11 +58,14 @@ class EntryHelpers extends Component
     /**
      * Process a single related field to extract titles.
      *
-     * @param Entry $entry The entry to get related elements from
-     * @param string $handle The field handle
+     * @param Entry $entry
+     * @param string $handle
      * @return array<string> An array of related element titles
      */
-    private function processRelatedField(Entry $entry, string $handle): array
+    private function processRelatedField(
+        Entry $entry,
+        string $handle
+    ): array
     {
         $field = $entry->getFieldValue($handle);
         if (!$field) {
@@ -78,11 +84,14 @@ class EntryHelpers extends Component
     /**
      * Get the URL of the first image from a given field.
      *
-     * @param Entry $entry The entry to get the image from
-     * @param string $fieldHandle The field handle
+     * @param Entry $entry
+     * @param string $fieldHandle
      * @return string The URL of the first image or an empty string
      */
-    public function getImage(Entry $entry, string $fieldHandle): string
+    public function getImage(
+        Entry $entry,
+        string $fieldHandle
+    ): string
     {
         $field = $entry->getFieldValue($fieldHandle);
 
@@ -100,11 +109,14 @@ class EntryHelpers extends Component
     /**
      * Get an array of image URLs from a given field.
      *
-     * @param Entry $entry The entry to get images from
-     * @param string $fieldHandle The field handle
+     * @param Entry $entry
+     * @param string $fieldHandle
      * @return array<string> An array of image URLs
      */
-    public function getImages(Entry $entry, string $fieldHandle): array
+    public function getImages(
+        Entry $entry,
+        string $fieldHandle
+    ): array
     {
         $field = $entry->getFieldValue($fieldHandle);
 
@@ -126,7 +138,10 @@ class EntryHelpers extends Component
     /**
      * @deprecated in 5.3.1 Use instance method getRelatedTitles() instead
      */
-    public static function getRelatedTitlesFromField(?Entry $entry, string $handle): array
+    public static function getRelatedTitlesFromField(
+        ?Entry $entry,
+        string $handle
+    ): array
     {
         AstuteoSearchTransform::info('Using static EntryHelpers::getRelatedTitlesFromField() has been deprecated. Use AstuteoSearchTransform::getInstance()->entryHelpers->getRelatedTitles() instead.');
         return AstuteoSearchTransform::getInstance()->entryHelpers->getRelatedTitles($entry, $handle);
@@ -135,7 +150,10 @@ class EntryHelpers extends Component
     /**
      * @deprecated in 5.3.1 Use instance method getImage() instead
      */
-    public static function getFirstImage(Entry $entry, string $fieldHandle): string
+    public static function getFirstImage(
+        Entry $entry,
+        string $fieldHandle
+    ): string
     {
         AstuteoSearchTransform::info('Using static EntryHelpers::getFirstImage() has been deprecated. Use AstuteoSearchTransform::getInstance()->entryHelpers->getImage() instead.');
         return AstuteoSearchTransform::getInstance()->entryHelpers->getImage($entry, $fieldHandle);
@@ -144,7 +162,10 @@ class EntryHelpers extends Component
     /**
      * @deprecated in 5.3.1 Use instance method getImages() instead
      */
-    public static function getImageUrls(Entry $entry, string $fieldHandle): array
+    public static function getImageUrls(
+        Entry $entry,
+        string $fieldHandle
+    ): array
     {
         AstuteoSearchTransform::info('Using static EntryHelpers::getImageUrls() has been deprecated. Use AstuteoSearchTransform::getInstance()->entryHelpers->getImages() instead.');
         return AstuteoSearchTransform::getInstance()->entryHelpers->getImages($entry, $fieldHandle);
