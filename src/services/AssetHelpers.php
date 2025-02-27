@@ -20,6 +20,58 @@ use yii\base\InvalidConfigException;
  */
 class AssetHelpers extends Component
 {
+
+    /**
+     * Get the URL of the first asset with a transform applied from an entry based on field handle(s).
+     *
+     * @param ElementInterface $entry The entry to get the asset URL from
+     * @param string|array|null $handle The field handle, array of handles, or null if using direct field
+     * @param array|string|null $transform The transform configuration (array), handle (string), or null for no transform
+     * @param bool|null $immediately Whether the transform should be generated immediately (optional)
+     * @return string The URL of the first transformed asset or an empty string
+     */
+    public function getFirstAssetTransformUrl(ElementInterface $entry, string|array|null $handle = null, array|string|null $transform = null, ?bool $immediately = null): string
+    {
+        $asset = $this->getFirstAsset($entry, $handle);
+        if (!$asset) {
+            return '';
+        }
+
+        try {
+            return $asset->getUrl($transform, $immediately) ?: '';
+        } catch (InvalidConfigException $e) {
+            AstuteoSearchTransform::error("Failed to get transformed URL for asset: " . $e->getMessage());
+            return '';
+        }
+    }
+
+    /**
+     * Get an array of transformed asset URLs from an entry based on field handle(s).
+     *
+     * @param ElementInterface $entry The entry to get asset URLs from
+     * @param string|array $handle The field handle or array of handles
+     * @param array|string|null $transform The transform configuration (array), handle (string), or null for no transform
+     * @param bool|null $immediately Whether the transform should be generated immediately (optional)
+     * @return array<string> An array of transformed asset URLs
+     */
+    public function getAllAssetTransformUrls(ElementInterface $entry, string|array $handle, array|string|null $transform = null, ?bool $immediately = null): array
+    {
+        $assets = $this->getAllAssets($entry, $handle);
+        $urls = [];
+
+        foreach ($assets as $asset) {
+            try {
+                $url = $asset->getUrl($transform, $immediately);
+                if ($url) {
+                    $urls[] = $url;
+                }
+            } catch (InvalidConfigException $e) {
+                AstuteoSearchTransform::error("Failed to get transformed URL for asset ID {$asset->id}: " . $e->getMessage());
+            }
+        }
+
+        return $urls;
+    }
     /**
      * Get the first asset from an entry based on field handle(s).
      *
@@ -38,12 +90,12 @@ class AssetHelpers extends Component
         if ($handle === null && $entry instanceof Asset) {
             return $entry;
         }
-        
+
         // Case 2: String handle
         if (is_string($handle)) {
             return $this->getAssetFromField($entry, $handle);
         }
-        
+
         // Case 3: Array of handles
         if (is_array($handle)) {
             foreach ($handle as $fieldHandle) {
@@ -53,7 +105,7 @@ class AssetHelpers extends Component
                 }
             }
         }
-        
+
         return null;
     }
 
@@ -68,11 +120,11 @@ class AssetHelpers extends Component
     {
         try {
             $field = $entry->getFieldValue($handle);
-            
+
             if (!$field) {
                 return null;
             }
-            
+
             return match(true) {
                 $field instanceof AssetQuery => $field->one(),
                 $field instanceof Asset => $field,
@@ -84,7 +136,7 @@ class AssetHelpers extends Component
             return null;
         }
     }
-    
+
     /**
      * Get all assets from an entry based on field handle(s).
      *
@@ -98,7 +150,7 @@ class AssetHelpers extends Component
         if (is_string($handle)) {
             return $this->getAssetsFromField($entry, $handle);
         }
-        
+
         // Case 2: Array of handles
         if (is_array($handle)) {
             $assets = [];
@@ -107,7 +159,7 @@ class AssetHelpers extends Component
             }
             return $assets;
         }
-        
+
         return [];
     }
 
@@ -122,11 +174,11 @@ class AssetHelpers extends Component
     {
         try {
             $field = $entry->getFieldValue($handle);
-            
+
             if (!$field) {
                 return [];
             }
-            
+
             return match(true) {
                 $field instanceof AssetQuery => $field->all(),
                 $field instanceof Asset => [$field],
@@ -152,7 +204,7 @@ class AssetHelpers extends Component
         if (!$asset) {
             return '';
         }
-        
+
         try {
             return $asset->getUrl() ?: '';
         } catch (InvalidConfigException $e) {
@@ -172,7 +224,7 @@ class AssetHelpers extends Component
     {
         $assets = $this->getAllAssets($entry, $handle);
         $urls = [];
-        
+
         foreach ($assets as $asset) {
             try {
                 $url = $asset->getUrl();
@@ -183,7 +235,7 @@ class AssetHelpers extends Component
                 AstuteoSearchTransform::error("Failed to get URL for asset ID {$asset->id}: " . $e->getMessage());
             }
         }
-        
+
         return $urls;
     }
 
