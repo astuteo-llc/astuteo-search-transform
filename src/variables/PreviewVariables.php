@@ -9,4 +9,9 @@ class PreviewVariables
     {
        return (new DevHelpers)->getFieldPreview($field,$excludeHandles);
     }
+
+    public function getOnlyField($field, $include = [])
+    {
+        return (new DevHelpers)->getFieldOnlyPreview($field, $include);
+    }
 }

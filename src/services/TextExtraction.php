@@ -44,11 +44,29 @@ class TextExtraction extends Component
         return $this->matrixCopy($matrix, $handle, $include);
     }
 
+    /**
+     * Extracts text from a matrix field, with optional field exclusion
+     *
+     * @param mixed $field The matrix field
+     * @param array $excludeHandles Optional array of field handles to exclude
+     * @return string The extracted text content
+     */
     public function extractTextFromMatrix($field, array $excludeHandles = []): string
     {
         return (new MatrixCraft5)->extractTextFromMatrixBlocks($field, $excludeHandles);
     }
 
+    /**
+     * Extracts text from a matrix field, including only specified field handles
+     *
+     * @param mixed $field The matrix field
+     * @param array $includeHandles Array of field handles to include (all others will be excluded)
+     * @return string The extracted text content
+     */
+    public function extractTextFromMatrixInclude($field, array $includeHandles): string
+    {
+        return (new MatrixCraft5)->extractTextFromMatrixBlocksInclude($field, $includeHandles);
+    }
 
     /**
      * Extracts text from an entry.

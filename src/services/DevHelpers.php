@@ -15,4 +15,9 @@ class DevHelpers extends Component
     {
         return (new TextExtraction)->extractTextFromMatrix($field, $excludeHandles);
     }
+
+    public function getFieldOnlyPreview($field, $include = [])
+    {
+        return (new TextExtraction)->extractTextFromMatrixInclude($field, $include);
+    }
 }
