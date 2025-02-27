@@ -7,7 +7,6 @@ use craft\base\Component;
 use craft\elements\Asset;
 use craft\helpers\StringHelper;
 use Exception;
-use astuteo\astuteosearchtransform\services\MatrixCraft5;
 
 /**
  * Text Extraction provides methods for extracting and transforming text
@@ -47,9 +46,7 @@ class TextExtraction extends Component
 
     public function extractTextFromMatrix($field)
     {
-        $field->count();
-        $content = (new MatrixCraft5)->fieldsFromMatrix($field);
-        return $field->count();
+        return (new MatrixCraft5)->fieldsFromMatrixString($field);
     }
 
 
@@ -275,7 +272,7 @@ class TextExtraction extends Component
      * @param string $text The text to clean
      * @return string The cleaned text
      */
-    private function cleanText(string $text): string
+    public function cleanText(string $text): string
     {
         // Decode HTML entities and handle special cases
         $text = html_entity_decode($text);
