@@ -3,19 +3,28 @@
 namespace astuteo\astuteosearchtransform\services;
 
 use astuteo\astuteosearchtransform\AstuteoSearchTransform;
+use craft\elements\Entry;
 use craft\errors\InvalidFieldException;
 use craft\fields\PlainText;
+use craft\fields\Table;
 use craft\ckeditor\Field as CKEditorField;
 
 class MatrixCraft5
 {
 
-    public function fieldsFromMatrixString($EntryQuery) {
+    /**
+     * @throws InvalidFieldException
+     */
+    public function fieldsFromMatrixString($EntryQuery): string
+    {
         $result = $this->fieldsFromMatrixArray($EntryQuery);
         return implode(' ', $result);
     }
- 
-    public function fieldsFromMatrixArray($EntryQuery)
+
+    /**
+     * @throws InvalidFieldException
+     */
+    public function fieldsFromMatrixArray($EntryQuery): array
     {
         $result = $this->fieldsFromMatrixWithRaw($EntryQuery);
         $plainTextValues = [];
@@ -36,11 +45,22 @@ class MatrixCraft5
                     }
                 }
             }
+            
+            if (isset($fieldValues['tableFields'])) {
+                foreach ($fieldValues['tableFields'] as $field) {
+                    if (!empty($field['plainText'])) {
+                        $plainTextValues[] = $field['plainText'];
+                    }
+                }
+            }
         }
         return $plainTextValues;
     }
-    
-    public function fieldsFromMatrixWithRaw($EntryQuery)
+
+    /**
+     * @throws InvalidFieldException
+     */
+    public function fieldsFromMatrixWithRaw($EntryQuery): array
     {
         $blocks = $EntryQuery;
         $result = [];
@@ -52,6 +72,8 @@ class MatrixCraft5
                     $fieldValues['plainTextFields'][$field->handle] = $this->processPlainTextField($block, $field);
                 } elseif ($field instanceof CKEditorField) {
                     $fieldValues['ckEditorFields'][$field->handle] = $this->processCKEditorField($block, $field);
+                } elseif ($field instanceof Table) {
+                    $fieldValues['tableFields'][$field->handle] = $this->processTableField($block, $field);
                 } else {
                     AstuteoSearchTransform::info('Unsupported field type: ' . get_class($field));
                 }
@@ -64,12 +86,13 @@ class MatrixCraft5
 
     /**
      * Process a PlainText field
-     * 
-     * @param \craft\elements\Entry $block The entry block
+     *
+     * @param Entry $block The entry block
      * @param PlainText $field The field definition
      * @return array An array with raw and plainText versions of the content
+     * @throws InvalidFieldException
      */
-    private function processPlainTextField($block, $field): array
+    private function processPlainTextField(Entry $block, PlainText $field): array
     {
         return [
             'raw' => $block->getFieldValue($field->handle),
@@ -80,12 +103,12 @@ class MatrixCraft5
     /**
      * Process a CKEditor field
      *
-     * @param \craft\elements\Entry $block The entry block
+     * @param Entry $block The entry block
      * @param CKEditorField $field The field definition
      * @return array An array with raw and plainText versions of the content
      * @throws InvalidFieldException
      */
-    private function processCKEditorField($block, $field): array
+    private function processCKEditorField(Entry $block, CKEditorField $field): array
     {
         $fieldValue = $block->getFieldValue($field->handle);
         if (!$fieldValue) {
@@ -101,6 +124,45 @@ class MatrixCraft5
         return [
             'raw' => $htmlContent,
             'plainText' => $plainText
+        ];
+    }
+
+    /**
+     * Process a Table field
+     *
+     * @param Entry $block The entry block
+     * @param Table $field The field definition
+     * @return array An array with raw and plainText versions of the content
+     * @throws InvalidFieldException
+     */
+    private function processTableField(Entry $block, Table $field): array
+    {
+        $fieldValue = $block->getFieldValue($field->handle);
+        if (empty($fieldValue)) {
+            return [
+                'raw' => '',
+                'plainText' => ''
+            ];
+        }
+        $columns = $field->columns;
+        
+        $tableValues = [];
+        $plainTextValues = [];
+
+        foreach ($fieldValue as $row) {
+            // This avoids processing both generic column names (col1, col2) and custom handles
+            foreach ($columns as $column) {
+                $handle = $column['handle'];
+                if (!empty($row[$handle]) && is_string($row[$handle])) {
+                    $tableValues[] = $row[$handle];
+                    $plainTextValues[] = $row[$handle];
+                }
+            }
+        }
+
+        return [
+            'raw' => $tableValues,
+            'plainText' => implode(' ', $plainTextValues)
         ];
     }
 }
