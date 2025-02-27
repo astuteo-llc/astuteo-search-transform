@@ -63,21 +63,26 @@ class AssetHelpers extends Component
      * @param ElementInterface $entry The entry to get the asset from
      * @param string $handle The field handle
      * @return Asset|null The asset or null if not found
-     * @throws InvalidFieldException
      */
     private function getAssetFromField(ElementInterface $entry, string $handle): ?Asset
     {
-        $field = $entry->getFieldValue($handle);
-        
-        if (!$field) {
+        try {
+            $field = $entry->getFieldValue($handle);
+            
+            if (!$field) {
+                return null;
+            }
+            
+            return match(true) {
+                $field instanceof AssetQuery => $field->one(),
+                $field instanceof Asset => $field,
+                default => null
+            };
+        } catch (InvalidFieldException $e) {
+            // Log the error but return gracefully
+            AstuteoSearchTransform::error("Invalid field handle: {$handle} - " . $e->getMessage());
             return null;
         }
-        
-        return match(true) {
-            $field instanceof AssetQuery => $field->one(),
-            $field instanceof Asset => $field,
-            default => null
-        };
     }
     
     /**
@@ -112,21 +117,26 @@ class AssetHelpers extends Component
      * @param ElementInterface $entry The entry to get assets from
      * @param string $handle The field handle
      * @return array<Asset> An array of assets
-     * @throws InvalidFieldException
      */
     private function getAssetsFromField(ElementInterface $entry, string $handle): array
     {
-        $field = $entry->getFieldValue($handle);
-        
-        if (!$field) {
+        try {
+            $field = $entry->getFieldValue($handle);
+            
+            if (!$field) {
+                return [];
+            }
+            
+            return match(true) {
+                $field instanceof AssetQuery => $field->all(),
+                $field instanceof Asset => [$field],
+                default => []
+            };
+        } catch (InvalidFieldException $e) {
+            // Log the error but return gracefully
+            AstuteoSearchTransform::error("Invalid field handle: {$handle} - " . $e->getMessage());
             return [];
         }
-        
-        return match(true) {
-            $field instanceof AssetQuery => $field->all(),
-            $field instanceof Asset => [$field],
-            default => []
-        };
     }
 
     /**
@@ -135,12 +145,20 @@ class AssetHelpers extends Component
      * @param ElementInterface $entry The entry to get the asset URL from
      * @param string|array|null $handle The field handle, array of handles, or null if using direct field
      * @return string The URL of the first asset or an empty string
-     * @throws InvalidConfigException
      */
     public function getFirstAssetUrl(ElementInterface $entry, string|array|null $handle = null): string
     {
         $asset = $this->getFirstAsset($entry, $handle);
-        return $asset ? $asset->getUrl() : '';
+        if (!$asset) {
+            return '';
+        }
+        
+        try {
+            return $asset->getUrl() ?: '';
+        } catch (InvalidConfigException $e) {
+            AstuteoSearchTransform::error("Failed to get URL for asset: " . $e->getMessage());
+            return '';
+        }
     }
 
     /**
@@ -149,12 +167,24 @@ class AssetHelpers extends Component
      * @param ElementInterface $entry The entry to get asset URLs from
      * @param string|array $handle The field handle or array of handles
      * @return array<string> An array of asset URLs
-     * @throws InvalidConfigException
      */
     public function getAllAssetUrls(ElementInterface $entry, string|array $handle): array
     {
         $assets = $this->getAllAssets($entry, $handle);
-        return array_filter(array_map(fn(Asset $asset): ?string => $asset->getUrl(), $assets));
+        $urls = [];
+        
+        foreach ($assets as $asset) {
+            try {
+                $url = $asset->getUrl();
+                if ($url) {
+                    $urls[] = $url;
+                }
+            } catch (InvalidConfigException $e) {
+                AstuteoSearchTransform::error("Failed to get URL for asset ID {$asset->id}: " . $e->getMessage());
+            }
+        }
+        
+        return $urls;
     }
 
 }
