@@ -71,9 +71,6 @@ class AstuteoSearchTransform extends Plugin
         // Register logger
         $this->registerLogTarget();
         $this->registerVariables();
-        
-        // Log initialization
-        self::info('Astuteo Search Transform plugin initializing');
 
         // Register services
         $this->setComponents([
