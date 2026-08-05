@@ -6,7 +6,9 @@ use astuteo\astuteosearchtransform\services\craft5\Matrix;
 
 use Craft;
 use craft\base\Component;
+use craft\base\ElementInterface;
 use craft\elements\Asset;
+use craft\elements\db\ElementQueryInterface;
 use craft\helpers\StringHelper;
 use Exception;
 
@@ -114,7 +116,19 @@ class TextExtraction extends Component
      */
     private function parseField(mixed $fieldVal): string
     {
-        return (string) $fieldVal;
+        if (is_scalar($fieldVal)) {
+            return (string)$fieldVal;
+        }
+
+        if ($fieldVal instanceof ElementQueryInterface) { // __toString() yields the class name, never content
+            return $this->parseRelatedEntries($fieldVal);
+        }
+
+        if (is_array($fieldVal)) {
+            return $this->flattenArray($fieldVal);
+        }
+
+        return is_object($fieldVal) && method_exists($fieldVal, '__toString') ? (string)$fieldVal : '';
     }
 
     /**
@@ -219,9 +233,9 @@ class TextExtraction extends Component
         return match(true) {
             is_string($fieldValue) => $fieldValue,
             is_object($fieldValue) => match(true) {
+                // Must precede the __toString arm; queries implement it and would win otherwise
+                $fieldValue instanceof ElementQueryInterface => $related ? $this->parseRelatedEntries($fieldValue) : '',
                 method_exists($fieldValue, '__toString') => (string)$fieldValue,
-                $fieldValue instanceof \craft\elements\Entry && $related => $this->parseRelatedEntries($fieldValue),
-                $fieldValue instanceof \craft\redactor\FieldData => (string)$fieldValue,
                 default => ''
             },
             is_array($fieldValue) => $this->flattenArray($fieldValue),
@@ -324,21 +338,24 @@ class TextExtraction extends Component
     }
 
     /**
-     * Parses related entries and extracts text.
+     * Parses related elements and extracts text.
      *
-     * @param object $relatedEntries The related entries object
+     * Recursion stops after one hop: parseFields() is called with $related = false.
+     *
+     * @param ElementQueryInterface $relatedEntries The relation field's query
      * @return string The parsed and cleaned text from related entries
      */
-    private function parseRelatedEntries(object $relatedEntries): string
+    private function parseRelatedEntries(ElementQueryInterface $relatedEntries): string
     {
         $textParts = [];
 
         foreach ($relatedEntries->all() as $item) {
-            if (!property_exists($item, 'fieldValues')) {
+            // fieldValues is a magic getter, so property_exists() reports false on every element
+            if (!$item instanceof ElementInterface) {
                 continue;
             }
 
-            $textParts[] = $this->parseFields($item->fieldValues, self::DEFAULT_EXTRACT_FIELDS, false);
+            $textParts[] = $this->parseFields($item->getFieldValues(), self::DEFAULT_EXTRACT_FIELDS, false);
         }
 
         return $this->cleanText(implode(' ', $textParts));
